@@ -1,0 +1,35 @@
+version: '3.8'
+
+services:
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "80:80"
+    depends_on:
+      - python-pii-service
+    environment:
+      - VITE_PYTHON_PII_ENDPOINT=http://python-pii-service:8000
+    networks:
+      - privacyguard-network
+
+  python-pii-service:
+    build:
+      context: .
+      dockerfile: Dockerfile.python
+    ports:
+      - "8000:8000"
+    networks:
+      - privacyguard-network
+    # The service needs time to download models on first run
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+
+networks:
+  privacyguard-network:
+    driver: bridge
