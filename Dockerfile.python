@@ -13,8 +13,9 @@ COPY python_pii_service/requirements.txt .
 # Install Python dependencies
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Download spaCy model
+# Download spaCy models
 RUN python -m spacy download en_core_web_sm
+RUN python -m spacy download en_core_web_lg
 
 # Copy application code
 COPY python_pii_service/ .

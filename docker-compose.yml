@@ -6,7 +6,7 @@ services:
       context: .
       dockerfile: Dockerfile
     ports:
-      - "80:80"
+      - "8081:80"
     depends_on:
       - python-pii-service
     environment:
@@ -19,7 +19,7 @@ services:
       context: .
       dockerfile: Dockerfile.python
     ports:
-      - "8000:8000"
+      - "8002:8000"
     networks:
       - privacyguard-network
     # The service needs time to download models on first run

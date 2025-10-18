@@ -18,6 +18,7 @@ import ConsentManagement from './components/pdpl/ConsentManagement';
 import CrossBorderTransfers from './components/pdpl/CrossBorderTransfers';
 import RetentionPolicyEngine from './components/pdpl/RetentionPolicyEngine';
 import PDPLComplianceMatrix from './components/pdpl/PDPLComplianceMatrix';
+import GDPRDashboard from './components/gdpr/GDPRDashboard';
 import SettingsDashboard from './components/settings/SettingsDashboard';
 import AnalyticsDashboard from './components/analytics/AnalyticsDashboard';
 
@@ -127,6 +128,8 @@ const DashboardContent: React.FC = () => {
         return <RetentionPolicyEngine />;
       case 'pdpl-matrix':
         return <PDPLComplianceMatrix />;
+      case 'gdpr':
+        return <GDPRDashboard />;
       default:
         return (
           <div className="bg-white p-8 rounded-lg shadow-sm">

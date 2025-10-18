@@ -17,7 +17,8 @@ import {
   CheckSquare,
   Globe,
   Calendar,
-  Target
+  Target,
+  BookOpen
 } from 'lucide-react';
 
 interface SidebarProps {
@@ -37,6 +38,7 @@ const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab }) => {
     { id: 'vendors', label: 'Vendor Risk', icon: Building2, roles: ['dpo', 'compliance', 'admin'] },
     { id: 'incidents', label: 'Incidents', icon: Shield, roles: ['dpo', 'compliance', 'admin'] },
     { id: 'compliance', label: 'Compliance', icon: Scale, roles: ['dpo', 'compliance', 'legal'] },
+    { id: 'gdpr', label: 'GDPR Compliance', icon: BookOpen, roles: ['dpo', 'compliance', 'legal'] },
     { id: 'analytics', label: 'Analytics', icon: BarChart3, roles: ['dpo', 'compliance', 'admin'] },
     { id: 'settings', label: 'Settings', icon: Settings, roles: ['admin'], adminOnly: true },
     { id: 'pdpl-consent', label: 'PDPL Consent Mgmt', icon: CheckSquare, roles: ['dpo', 'compliance', 'legal'] },
