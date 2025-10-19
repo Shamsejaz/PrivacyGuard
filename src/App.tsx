@@ -21,6 +21,7 @@ import PDPLComplianceMatrix from './components/pdpl/PDPLComplianceMatrix';
 import GDPRDashboard from './components/gdpr/GDPRDashboard';
 import SettingsDashboard from './components/settings/SettingsDashboard';
 import AnalyticsDashboard from './components/analytics/AnalyticsDashboard';
+import { PrivacyComplyAgentDashboard } from './components/privacy-comply-agent';
 
 const DashboardContent: React.FC = () => {
   const [activeTab, setActiveTab] = useState('dashboard');
@@ -130,6 +131,8 @@ const DashboardContent: React.FC = () => {
         return <PDPLComplianceMatrix />;
       case 'gdpr':
         return <GDPRDashboard />;
+      case 'privacy-comply-agent':
+        return <PrivacyComplyAgentDashboard />;
       default:
         return (
           <div className="bg-white p-8 rounded-lg shadow-sm">
