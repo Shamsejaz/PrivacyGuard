@@ -1,0 +1,257 @@
+# Serverless Framework configuration for API Gateway deployment
+service: privacyguard-api-gateway
+
+provider:
+  name: aws
+  runtime: nodejs18.x
+  region: ${opt:region, 'us-east-1'}
+  stage: ${opt:stage, 'dev'}
+  
+  environment:
+    STAGE: ${self:provider.stage}
+    REGION: ${self:provider.region}
+    BEDROCK_MODEL_ID: anthropic.claude-3-sonnet-20240229-v1:0
+    
+  iam:
+    role:
+      statements:
+        - Effect: Allow
+          Action:
+            - bedrock:InvokeModel
+            - bedrock:InvokeModelWithResponseStream
+            - bedrock:ListFoundationModels
+          Resource: "*"
+        - Effect: Allow
+          Action:
+            - dynamodb:Query
+            - dynamodb:Scan
+            - dynamodb:GetItem
+            - dynamodb:PutItem
+            - dynamodb:UpdateItem
+            - dynamodb:DeleteItem
+          Resource: 
+            - "arn:aws:dynamodb:${self:provider.region}:*:table/privacyguard-*"
+        - Effect: Allow
+          Action:
+            - s3:GetObject
+            - s3:PutObject
+            - s3:DeleteObject
+          Resource:
+            - "arn:aws:s3:::privacyguard-reports/*"
+        - Effect: Allow
+          Action:
+            - logs:CreateLogGroup
+            - logs:CreateLogStream
+            - logs:PutLogEvents
+          Resource: "*"
+
+functions:
+  # Authentication & Authorization
+  authorizer:
+    handler: src/auth/authorizer.handler
+    
+  # Privacy Comply Agent Endpoints
+  agentStatus:
+    handler: src/agent/status.handler
+    events:
+      - http:
+          path: /api/agent/status
+          method: get
+          cors: true
+          authorizer: authorizer
+          
+  agentScan:
+    handler: src/agent/scan.handler
+    timeout: 300 # 5 minutes for compliance scans
+    events:
+      - http:
+          path: /api/agent/scan
+          method: post
+          cors: true
+          authorizer: authorizer
+          
+  agentQuery:
+    handler: src/agent/query.handler
+    events:
+      - http:
+          path: /api/agent/query
+          method: post
+          cors: true
+          authorizer: authorizer
+          
+  agentRemediation:
+    handler: src/agent/remediation.handler
+    timeout: 600 # 10 minutes for remediation
+    events:
+      - http:
+          path: /api/agent/remediation
+          method: post
+          cors: true
+          authorizer: authorizer
+
+  # Compliance Management
+  complianceFindings:
+    handler: src/compliance/findings.handler
+    events:
+      - http:
+          path: /api/compliance/findings
+          method: get
+          cors: true
+          authorizer: authorizer
+      - http:
+          path: /api/compliance/findings
+          method: post
+          cors: true
+          authorizer: authorizer
+          
+  complianceReports:
+    handler: src/compliance/reports.handler
+    events:
+      - http:
+          path: /api/compliance/reports
+          method: get
+          cors: true
+          authorizer: authorizer
+      - http:
+          path: /api/compliance/reports/{type}
+          method: post
+          cors: true
+          authorizer: authorizer
+          
+  # DSAR Management
+  dsarRequests:
+    handler: src/dsar/requests.handler
+    events:
+      - http:
+          path: /api/dsar/requests
+          method: get
+          cors: true
+          authorizer: authorizer
+      - http:
+          path: /api/dsar/requests
+          method: post
+          cors: true
+          
+  # Risk Assessment
+  riskAssessment:
+    handler: src/risk/assessment.handler
+    events:
+      - http:
+          path: /api/risk/assessment
+          method: get
+          cors: true
+          authorizer: authorizer
+      - http:
+          path: /api/risk/assessment
+          method: post
+          cors: true
+          authorizer: authorizer
+
+  # Real-time WebSocket connections
+  websocketConnect:
+    handler: src/websocket/connect.handler
+    events:
+      - websocket:
+          route: $connect
+          
+  websocketDisconnect:
+    handler: src/websocket/disconnect.handler
+    events:
+      - websocket:
+          route: $disconnect
+          
+  websocketMessage:
+    handler: src/websocket/message.handler
+    events:
+      - websocket:
+          route: $default
+
+resources:
+  Resources:
+    # DynamoDB Tables
+    ComplianceFindingsTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: privacyguard-compliance-findings-${self:provider.stage}
+        BillingMode: PAY_PER_REQUEST
+        AttributeDefinitions:
+          - AttributeName: id
+            AttributeType: S
+          - AttributeName: timestamp
+            AttributeType: N
+        KeySchema:
+          - AttributeName: id
+            KeyType: HASH
+        GlobalSecondaryIndexes:
+          - IndexName: TimestampIndex
+            KeySchema:
+              - AttributeName: timestamp
+                KeyType: HASH
+            Projection:
+              ProjectionType: ALL
+              
+    DSARRequestsTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: privacyguard-dsar-requests-${self:provider.stage}
+        BillingMode: PAY_PER_REQUEST
+        AttributeDefinitions:
+          - AttributeName: id
+            AttributeType: S
+          - AttributeName: status
+            AttributeType: S
+        KeySchema:
+          - AttributeName: id
+            KeyType: HASH
+        GlobalSecondaryIndexes:
+          - IndexName: StatusIndex
+            KeySchema:
+              - AttributeName: status
+                KeyType: HASH
+            Projection:
+              ProjectionType: ALL
+              
+    # S3 Bucket for Reports
+    ReportsBucket:
+      Type: AWS::S3::Bucket
+      Properties:
+        BucketName: privacyguard-reports-${self:provider.stage}
+        PublicAccessBlockConfiguration:
+          BlockPublicAcls: true
+          BlockPublicPolicy: true
+          IgnorePublicAcls: true
+          RestrictPublicBuckets: true
+        BucketEncryption:
+          ServerSideEncryptionConfiguration:
+            - ServerSideEncryptionByDefault:
+                SSEAlgorithm: AES256
+                
+    # API Gateway Custom Domain
+    ApiGatewayDomainName:
+      Type: AWS::ApiGateway::DomainName
+      Properties:
+        DomainName: api.privacyguard.${self:provider.stage}.com
+        CertificateArn: ${env:SSL_CERTIFICATE_ARN}
+        
+    # CloudWatch Log Groups
+    ApiGatewayLogGroup:
+      Type: AWS::Logs::LogGroup
+      Properties:
+        LogGroupName: /aws/apigateway/privacyguard-${self:provider.stage}
+        RetentionInDays: 30
+
+plugins:
+  - serverless-webpack
+  - serverless-offline
+  - serverless-domain-manager
+
+custom:
+  webpack:
+    webpackConfig: ./webpack.config.js
+    includeModules: true
+    
+  customDomain:
+    domainName: api.privacyguard.${self:provider.stage}.com
+    basePath: ''
+    stage: ${self:provider.stage}
+    createRoute53Record: true

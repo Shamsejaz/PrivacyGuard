@@ -4,6 +4,7 @@ import Card from '../../ui/Card';
 import Badge from '../../ui/Badge';
 import Button from '../../ui/Button';
 import ProgressBar from '../../ui/ProgressBar';
+import { useDSARActions } from '../../../hooks/useDSAR';
 
 type Language = 'en' | 'ar';
 
@@ -30,6 +31,19 @@ interface RequestTrackerProps {
 const RequestTracker: React.FC<RequestTrackerProps> = ({ language }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedRequest, setSelectedRequest] = useState<string | null>(null);
+  const [requestStatus, setRequestStatus] = useState<any>(null);
+  const { checkStatus, loading, error } = useDSARActions();
+
+  const handleSearch = async () => {
+    if (searchTerm.trim()) {
+      try {
+        const status = await checkStatus(searchTerm.trim());
+        setRequestStatus(status);
+      } catch (err) {
+        setRequestStatus(null);
+      }
+    }
+  };
 
   const isRTL = language === 'ar';
 
@@ -205,11 +219,41 @@ const RequestTracker: React.FC<RequestTrackerProps> = ({ language }) => {
               placeholder={t('searchPlaceholder')}
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
+              onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
               className={`${isRTL ? 'pr-10 pl-4' : 'pl-10 pr-4'} py-2 w-full border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent ${isRTL ? 'text-right' : 'text-left'}`}
               dir={isRTL ? 'rtl' : 'ltr'}
             />
           </div>
+          <Button onClick={handleSearch} disabled={loading || !searchTerm.trim()}>
+            {loading ? 'Searching...' : 'Search'}
+          </Button>
         </div>
+
+        {error && (
+          <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-4">
+            <p className="text-red-800 text-sm">{error}</p>
+          </div>
+        )}
+
+        {requestStatus && (
+          <div className="border border-gray-200 rounded-lg p-4 mb-4">
+            <div className={`flex items-start justify-between mb-4 ${isRTL ? 'flex-row-reverse' : ''}`}>
+              <div className={`flex items-start space-x-3 ${isRTL ? 'space-x-reverse' : ''}`}>
+                {getStatusIcon(requestStatus.status)}
+                <div className="flex-1">
+                  <div className={`flex items-center space-x-2 mb-1 ${isRTL ? 'space-x-reverse' : ''}`}>
+                    <h3 className="font-medium text-gray-900">{requestStatus.requestId}</h3>
+                    {getStatusBadge(requestStatus.status)}
+                  </div>
+                  <div className={`flex items-center space-x-4 text-sm text-gray-500 ${isRTL ? 'space-x-reverse' : ''}`}>
+                    <span>{t('submitted')} {new Date(requestStatus.submittedAt).toLocaleDateString()}</span>
+                    <span>{t('lastUpdate')} {new Date(requestStatus.lastUpdated).toLocaleDateString()}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
 
         <div className="space-y-4">
           {filteredRequests.map((request) => (

@@ -1,10 +1,13 @@
-import React, { useState } from 'react';
-import { FileText, Plus, Search, Filter, Download, RefreshCw, Globe, Users, Calendar, CheckCircle, Clock, AlertTriangle, Eye, Edit, Archive } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { FileText, Plus, Search, Filter, Download, RefreshCw, Globe, Users, Calendar, CheckCircle, Clock, AlertTriangle, Eye, Edit, Archive, Loader2 } from 'lucide-react';
 import Card from '../ui/Card';
 import Badge from '../ui/Badge';
 import Button from '../ui/Button';
 import ProgressBar from '../ui/ProgressBar';
+import { usePolicyManagement } from '../../hooks/usePolicyManagement';
+import type { PolicyDocument as APIPolicyDocument, PolicyTemplate as APITemplate } from '../../services/policyService';
 
+// Legacy interface for backward compatibility
 interface PolicyDocument {
   id: string;
   title: string;
@@ -36,120 +39,103 @@ const PolicyManagementDashboard: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedFilter, setSelectedFilter] = useState('all');
   const [showGenerator, setShowGenerator] = useState(false);
+  
+  // Use the policy management hook
+  const {
+    policies: apiPolicies,
+    templates: apiTemplates,
+    analytics,
+    loading,
+    error,
+    searchPolicies,
+    loadTemplates,
+    loadAnalytics,
+    clearError
+  } = usePolicyManagement();
 
-  const policies: PolicyDocument[] = [
-    {
-      id: '1',
-      title: 'Privacy Policy - Main Website',
-      type: 'privacy_policy',
-      status: 'published',
-      lastModified: new Date('2024-01-15T10:30:00'),
-      author: 'Sarah Johnson',
-      version: '2.1',
-      languages: ['English', 'Spanish', 'French'],
-      regulations: ['GDPR', 'CCPA'],
-      nextReview: new Date('2024-04-15'),
-      aiGenerated: true,
-      complianceScore: 95,
-      wordCount: 3200,
-      publishedUrl: 'https://company.com/privacy'
-    },
-    {
-      id: '2',
-      title: 'Cookie Policy - E-commerce Platform',
-      type: 'cookie_policy',
-      status: 'review',
-      lastModified: new Date('2024-01-14T16:45:00'),
-      author: 'Mike Chen',
-      version: '1.3',
-      languages: ['English', 'German'],
-      regulations: ['GDPR', 'ePrivacy'],
-      nextReview: new Date('2024-02-14'),
-      aiGenerated: true,
-      complianceScore: 88,
-      wordCount: 1800
-    },
-    {
-      id: '3',
-      title: 'Data Processing Agreement - Vendors',
-      type: 'dpa',
-      status: 'approved',
-      lastModified: new Date('2024-01-13T09:15:00'),
-      author: 'Lisa Rodriguez',
-      version: '3.0',
-      languages: ['English'],
-      regulations: ['GDPR', 'CCPA', 'HIPAA'],
-      nextReview: new Date('2024-07-13'),
-      aiGenerated: false,
-      complianceScore: 92,
-      wordCount: 5600
-    },
-    {
-      id: '4',
-      title: 'Employee Privacy Notice',
-      type: 'privacy_policy',
-      status: 'draft',
-      lastModified: new Date('2024-01-12T14:20:00'),
-      author: 'James Wilson',
-      version: '1.0',
-      languages: ['English'],
-      regulations: ['GDPR', 'CCPA'],
-      nextReview: new Date('2024-03-12'),
-      aiGenerated: true,
-      complianceScore: 78,
-      wordCount: 2400
-    },
-    {
-      id: '5',
-      title: 'Data Retention Policy',
-      type: 'retention_policy',
-      status: 'expired',
-      lastModified: new Date('2023-12-01T11:30:00'),
-      author: 'Sarah Johnson',
-      version: '1.2',
-      languages: ['English', 'Spanish'],
-      regulations: ['GDPR', 'CCPA', 'HIPAA'],
-      nextReview: new Date('2024-01-01'),
-      aiGenerated: false,
-      complianceScore: 85,
-      wordCount: 3800
-    }
-  ];
+  // Helper function to convert API policy to legacy format
+  const convertApiPolicyToLegacy = (apiPolicy: APIPolicyDocument): PolicyDocument => {
+    const statusMap: Record<string, PolicyDocument['status']> = {
+      'draft': 'draft',
+      'review': 'review',
+      'approved': 'approved',
+      'active': 'published',
+      'archived': 'expired',
+      'rejected': 'draft'
+    };
 
-  const templates: PolicyTemplate[] = [
-    {
-      id: '1',
-      name: 'E-commerce Privacy Policy',
-      industry: 'E-commerce',
-      regulations: ['GDPR', 'CCPA', 'PIPEDA'],
-      description: 'Comprehensive privacy policy for online retail businesses',
-      estimatedTime: '15 minutes'
-    },
-    {
-      id: '2',
-      name: 'Healthcare Privacy Notice',
-      industry: 'Healthcare',
-      regulations: ['HIPAA', 'GDPR', 'HITECH'],
-      description: 'HIPAA-compliant privacy notice for healthcare providers',
-      estimatedTime: '20 minutes'
-    },
-    {
-      id: '3',
-      name: 'SaaS Terms of Service',
-      industry: 'Technology',
-      regulations: ['GDPR', 'CCPA', 'SOC2'],
-      description: 'Terms of service for software-as-a-service platforms',
-      estimatedTime: '25 minutes'
-    },
-    {
-      id: '4',
-      name: 'Financial Services DPA',
-      industry: 'Financial',
-      regulations: ['GDPR', 'PCI DSS', 'SOX'],
-      description: 'Data processing agreement for financial institutions',
-      estimatedTime: '30 minutes'
-    }
-  ];
+    const typeMap: Record<string, PolicyDocument['type']> = {
+      'privacy_policy': 'privacy_policy',
+      'cookie_policy': 'cookie_policy',
+      'terms_of_service': 'terms_of_service',
+      'data_processing_agreement': 'dpa',
+      'consent_form': 'consent_notice',
+      'other': 'retention_policy'
+    };
+
+    return {
+      id: apiPolicy._id || '',
+      title: apiPolicy.title,
+      type: typeMap[apiPolicy.type] || 'privacy_policy',
+      status: statusMap[apiPolicy.status] || 'draft',
+      lastModified: new Date(apiPolicy.updated_at),
+      author: apiPolicy.created_by,
+      version: apiPolicy.version,
+      languages: [apiPolicy.language], // API stores single language, convert to array
+      regulations: apiPolicy.metadata.compliance_frameworks,
+      nextReview: apiPolicy.metadata.next_review_date ? new Date(apiPolicy.metadata.next_review_date) : new Date(),
+      aiGenerated: true, // Assume AI generated for now
+      complianceScore: 85, // Default score, would need to fetch from compliance report
+      wordCount: apiPolicy.metadata.word_count,
+      publishedUrl: apiPolicy.status === 'active' ? '#' : undefined
+    };
+  };
+
+  // Helper function to convert API template to legacy format
+  const convertApiTemplateToLegacy = (apiTemplate: APITemplate): PolicyTemplate => {
+    return {
+      id: apiTemplate._id || '',
+      name: apiTemplate.name,
+      industry: apiTemplate.category,
+      regulations: [apiTemplate.regulation],
+      description: apiTemplate.description,
+      estimatedTime: '15 minutes' // Default estimation
+    };
+  };
+
+  // Convert API data to legacy format
+  const policies: PolicyDocument[] = apiPolicies.map(convertApiPolicyToLegacy);
+  const templates: PolicyTemplate[] = apiTemplates.map(convertApiTemplateToLegacy);
+
+  // Handle search with API
+  useEffect(() => {
+    const delayedSearch = setTimeout(() => {
+      if (searchTerm || selectedFilter !== 'all') {
+        const filters: any = {};
+        
+        if (searchTerm) {
+          filters.search_text = searchTerm;
+        }
+        
+        if (selectedFilter !== 'all') {
+          // Map legacy status to API status
+          const statusMap: Record<string, string> = {
+            'published': 'active',
+            'review': 'review',
+            'draft': 'draft',
+            'expired': 'archived'
+          };
+          filters.status = statusMap[selectedFilter] || selectedFilter;
+        }
+        
+        searchPolicies(filters);
+      } else {
+        searchPolicies();
+      }
+    }, 300); // Debounce search
+
+    return () => clearTimeout(delayedSearch);
+  }, [searchTerm, selectedFilter, searchPolicies]);
 
   const getStatusBadge = (status: string) => {
     switch (status) {
@@ -481,7 +467,9 @@ const PolicyManagementDashboard: React.FC = () => {
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-sm text-gray-600">Avg Compliance Score</p>
-                    <p className="text-2xl font-bold text-green-600">89%</p>
+                    <p className="text-2xl font-bold text-green-600">
+                      {analytics?.overview.compliance_score || 0}%
+                    </p>
                   </div>
                   <CheckCircle className="h-8 w-8 text-green-600" />
                 </div>
@@ -489,22 +477,50 @@ const PolicyManagementDashboard: React.FC = () => {
               <Card>
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm text-gray-600">AI Generated</p>
-                    <p className="text-2xl font-bold text-blue-600">75%</p>
+                    <p className="text-sm text-gray-600">Total Policies</p>
+                    <p className="text-2xl font-bold text-blue-600">
+                      {analytics?.overview.total_policies || 0}
+                    </p>
                   </div>
-                  <RefreshCw className="h-8 w-8 text-blue-600" />
+                  <FileText className="h-8 w-8 text-blue-600" />
                 </div>
               </Card>
               <Card>
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm text-gray-600">Languages</p>
-                    <p className="text-2xl font-bold text-purple-600">8</p>
+                    <p className="text-sm text-gray-600">Active Policies</p>
+                    <p className="text-2xl font-bold text-purple-600">
+                      {analytics?.overview.active_policies || 0}
+                    </p>
                   </div>
-                  <Globe className="h-8 w-8 text-purple-600" />
+                  <CheckCircle className="h-8 w-8 text-purple-600" />
                 </div>
               </Card>
             </div>
+            
+            {analytics?.gap_analysis && (
+              <Card>
+                <h3 className="text-lg font-semibold text-gray-900 mb-4">Compliance Gap Analysis</h3>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                  <div className="text-center">
+                    <p className="text-2xl font-bold text-red-600">{analytics.gap_analysis.critical_gaps}</p>
+                    <p className="text-sm text-gray-600">Critical Gaps</p>
+                  </div>
+                  <div className="text-center">
+                    <p className="text-2xl font-bold text-orange-600">{analytics.gap_analysis.high_gaps}</p>
+                    <p className="text-sm text-gray-600">High Priority</p>
+                  </div>
+                  <div className="text-center">
+                    <p className="text-2xl font-bold text-yellow-600">{analytics.gap_analysis.medium_gaps}</p>
+                    <p className="text-sm text-gray-600">Medium Priority</p>
+                  </div>
+                  <div className="text-center">
+                    <p className="text-2xl font-bold text-green-600">{analytics.gap_analysis.low_gaps}</p>
+                    <p className="text-sm text-gray-600">Low Priority</p>
+                  </div>
+                </div>
+              </Card>
+            )}
           </div>
         );
       default:
@@ -512,19 +528,49 @@ const PolicyManagementDashboard: React.FC = () => {
     }
   };
 
+  // Show loading state
+  if (loading && policies.length === 0) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="text-center">
+          <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4 text-blue-600" />
+          <p className="text-gray-600">Loading policy data...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
+      {/* Error Alert */}
+      {error && (
+        <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center">
+              <AlertTriangle className="h-5 w-5 text-red-600 mr-2" />
+              <span className="text-red-800">{error}</span>
+            </div>
+            <button
+              onClick={clearError}
+              className="text-red-600 hover:text-red-800"
+            >
+              ×
+            </button>
+          </div>
+        </div>
+      )}
+
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Policy Management</h1>
           <p className="text-gray-600 mt-1">AI-powered policy generation and compliance management</p>
         </div>
         <div className="flex items-center space-x-2">
-          <Button variant="outline">
+          <Button variant="outline" disabled={loading}>
             <Download className="h-4 w-4 mr-2" />
             Export Report
           </Button>
-          <Button onClick={() => setShowGenerator(true)}>
+          <Button onClick={() => setShowGenerator(true)} disabled={loading}>
             <Plus className="h-4 w-4 mr-2" />
             Generate Policy
           </Button>

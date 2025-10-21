@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { User, Mail, Phone, MapPin, FileText, Upload, Shield, AlertTriangle } from 'lucide-react';
 import Button from '../../ui/Button';
 import Card from '../../ui/Card';
+import { useDSARActions } from '../../../hooks/useDSAR';
 
 type Language = 'en' | 'ar';
 
@@ -27,6 +28,7 @@ const RequestForm: React.FC<RequestFormProps> = ({ requestType, onSubmit, onBack
   });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const { submitRequest, loading, error } = useDSARActions();
 
   const isRTL = language === 'ar';
 
@@ -124,10 +126,26 @@ const RequestForm: React.FC<RequestFormProps> = ({ requestType, onSubmit, onBack
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (validateForm()) {
-      onSubmit({ ...formData, requestType });
+      try {
+        const requestData = {
+          subjectName: `${formData.firstName} ${formData.lastName}`,
+          subjectEmail: formData.email,
+          subjectPhone: formData.phone || undefined,
+          requestType: requestType as any,
+          description: formData.details,
+          dataCategories: [], // Could be extracted from form if needed
+          processingPurposes: [] // Could be extracted from form if needed
+        };
+        
+        const result = await submitRequest(requestData);
+        onSubmit({ ...formData, requestType, ...result });
+      } catch (err) {
+        // Error is handled by the hook
+        console.error('Failed to submit DSAR request:', err);
+      }
     }
   };
 
@@ -406,12 +424,18 @@ const RequestForm: React.FC<RequestFormProps> = ({ requestType, onSubmit, onBack
           </div>
         </div>
 
+        {error && (
+          <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+            <p className="text-red-800 text-sm">{error}</p>
+          </div>
+        )}
+
         <div className={`flex items-center justify-between ${isRTL ? 'flex-row-reverse' : ''}`}>
-          <Button variant="outline" onClick={onBack}>
+          <Button variant="outline" onClick={onBack} disabled={loading}>
             {t('buttons', 'back')}
           </Button>
-          <Button type="submit">
-            {t('buttons', 'submit')}
+          <Button type="submit" disabled={loading}>
+            {loading ? 'Submitting...' : t('buttons', 'submit')}
           </Button>
         </div>
       </form>

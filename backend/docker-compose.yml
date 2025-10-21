@@ -1,0 +1,128 @@
+version: '3.8'
+
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:15-alpine
+    container_name: privacyguard-postgres
+    environment:
+      POSTGRES_DB: privacyguard
+      POSTGRES_USER: privacyguard_user
+      POSTGRES_PASSWORD: privacyguard_password
+      POSTGRES_INITDB_ARGS: "--encoding=UTF-8"
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./init-scripts:/docker-entrypoint-initdb.d
+    networks:
+      - privacyguard-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U privacyguard_user -d privacyguard"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # MongoDB Database
+  mongodb:
+    image: mongo:7-jammy
+    container_name: privacyguard-mongodb
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: admin
+      MONGO_INITDB_ROOT_PASSWORD: privacyguard_password
+      MONGO_INITDB_DATABASE: privacyguard
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongodb_data:/data/db
+      - ./mongo-init:/docker-entrypoint-initdb.d
+    networks:
+      - privacyguard-network
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Redis Cache
+  redis:
+    image: redis:7-alpine
+    container_name: privacyguard-redis
+    command: redis-server --appendonly yes --requirepass privacyguard_password
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - privacyguard-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "--raw", "incr", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Backend API Server
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: privacyguard-backend
+    environment:
+      NODE_ENV: production
+      PORT: 3001
+      
+      # Database connections
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: 5432
+      POSTGRES_DB: privacyguard
+      POSTGRES_USER: privacyguard_user
+      POSTGRES_PASSWORD: privacyguard_password
+      
+      MONGODB_URI: mongodb://admin:privacyguard_password@mongodb:27017/privacyguard?authSource=admin
+      
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_PASSWORD: privacyguard_password
+      
+      # JWT Configuration
+      JWT_SECRET: your_production_jwt_secret_change_this
+      JWT_EXPIRES_IN: 24h
+      JWT_REFRESH_EXPIRES_IN: 7d
+      
+      # CORS
+      CORS_ORIGIN: http://localhost:5173
+      CORS_CREDENTIALS: true
+      
+      # Logging
+      LOG_LEVEL: info
+    ports:
+      - "3001:3001"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      mongodb:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - privacyguard-network
+    volumes:
+      - ./logs:/app/logs
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3001/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+    driver: local
+  mongodb_data:
+    driver: local
+  redis_data:
+    driver: local
+
+networks:
+  privacyguard-network:
+    driver: bridge

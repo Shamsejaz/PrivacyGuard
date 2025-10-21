@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Shield, FileText, Users, Clock, AlertTriangle, CheckCircle, Eye, Settings } from 'lucide-react';
+import { useGDPRDashboard } from '../../hooks/useGDPR';
 import LawfulBasisManager from './LawfulBasisManager';
 import DataProtectionImpactAssessment from './DataProtectionImpactAssessment';
 import RecordsOfProcessing from './RecordsOfProcessing';
@@ -9,22 +10,40 @@ import GDPRComplianceMatrix from './GDPRComplianceMatrix';
 
 const GDPRDashboard: React.FC = () => {
   const [activeSubTab, setActiveSubTab] = useState('overview');
+  const { stats, loading, error } = useGDPRDashboard();
 
-  const complianceStats = {
-    overallScore: 87,
-    lawfulBasisCoverage: 92,
-    dpiasCompleted: 15,
-    recordsOfProcessing: 23,
-    breachResponseTime: '< 72h',
-    dataPortabilityRequests: 8
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="bg-red-50 border border-red-200 rounded-md p-4">
+        <div className="flex">
+          <AlertTriangle className="h-5 w-5 text-red-400" />
+          <div className="ml-3">
+            <h3 className="text-sm font-medium text-red-800">Error loading GDPR dashboard</h3>
+            <p className="text-sm text-red-700 mt-1">{error}</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  const complianceStats = stats || {
+    overallScore: 0,
+    lawfulBasisCoverage: 0,
+    dpiasCompleted: 0,
+    recordsOfProcessing: 0,
+    breachResponseTime: 'N/A',
+    dataPortabilityRequests: 0
   };
 
-  const recentActivities = [
-    { id: 1, type: 'DPIA', description: 'Marketing automation DPIA completed', timestamp: '2 hours ago', status: 'completed' },
-    { id: 2, type: 'Breach', description: 'Data breach notification submitted to supervisory authority', timestamp: '1 day ago', status: 'submitted' },
-    { id: 3, type: 'Lawful Basis', description: 'Updated lawful basis for customer analytics', timestamp: '3 days ago', status: 'updated' },
-    { id: 4, type: 'Records', description: 'New processing activity added to records', timestamp: '5 days ago', status: 'added' }
-  ];
+  const recentActivities = stats?.recentActivities || [];
 
   const renderSubContent = () => {
     switch (activeSubTab) {

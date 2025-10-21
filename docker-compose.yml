@@ -8,11 +8,35 @@ services:
     ports:
       - "8081:80"
     depends_on:
+      - backend
       - python-pii-service
     environment:
+      - VITE_API_URL=http://backend:3001
       - VITE_PYTHON_PII_ENDPOINT=http://python-pii-service:8000
     networks:
       - privacyguard-network
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    ports:
+      - "3001:3001"
+    environment:
+      - NODE_ENV=production
+      - PORT=3001
+      - CORS_ORIGIN=http://localhost:8081
+      - JWT_SECRET=your-super-secret-jwt-key-change-this-in-production
+      - JWT_REFRESH_SECRET=your-super-secret-refresh-key-change-this-in-production
+      - BCRYPT_ROUNDS=12
+    networks:
+      - privacyguard-network
+    # Add depends_on if using database services
+    # depends_on:
+    #   postgres:
+    #     condition: service_healthy
+    #   redis:
+    #     condition: service_healthy
 
   python-pii-service:
     build:

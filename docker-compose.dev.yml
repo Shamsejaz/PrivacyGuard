@@ -1,6 +1,7 @@
 version: '3.8'
 
 services:
+  # Frontend service (React + Vite)
   frontend-dev:
     build:
       context: .
@@ -15,6 +16,27 @@ services:
     networks:
       - privacyguard-network
 
+  # Backend service (Node.js + Express) - Development mode
+  backend-dev:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.dev
+    ports:
+      - "3001:3001"
+    volumes:
+      - ./backend:/app
+      - /app/node_modules
+    environment:
+      - NODE_ENV=development
+      - PORT=3001
+      - CORS_ORIGIN=http://localhost:5173
+      - JWT_SECRET=your-super-secret-jwt-key-change-this-in-production
+      - JWT_REFRESH_SECRET=your-super-secret-refresh-key-change-this-in-production
+      - BCRYPT_ROUNDS=12
+    networks:
+      - privacyguard-network
+
+  # Python PII Detection Service
   python-pii-service:
     build:
       context: .

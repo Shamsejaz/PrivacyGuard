@@ -4,9 +4,11 @@ import Card from '../ui/Card';
 import Badge from '../ui/Badge';
 import Button from '../ui/Button';
 import ProgressBar from '../ui/ProgressBar';
+import { TenantDataDisplay, useTenantFilter, TenantAccessControl } from '../tenant/TenantAwareComponent';
 
 interface DSARRequest {
   id: string;
+  tenantId?: string;
   dataSubject: string;
   email: string;
   requestType: 'access' | 'delete' | 'portability' | 'rectification' | 'restriction' | 'objection';
@@ -29,6 +31,7 @@ interface DSARRequest {
 }
 
 const DSARDashboard: React.FC = () => {
+  const { filterByTenant, currentTenant, addTenantId } = useTenantFilter();
   const [activeTab, setActiveTab] = useState('requests');
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedFilter, setSelectedFilter] = useState('all');
@@ -37,6 +40,7 @@ const DSARDashboard: React.FC = () => {
   const dsarRequests: DSARRequest[] = [
     {
       id: '1',
+      tenantId: currentTenant?.id,
       dataSubject: 'John Doe',
       email: 'john.doe@email.com',
       requestType: 'access',
@@ -67,6 +71,7 @@ const DSARDashboard: React.FC = () => {
     },
     {
       id: '2',
+      tenantId: currentTenant?.id,
       dataSubject: 'Jane Smith',
       email: 'jane.smith@company.com',
       requestType: 'delete',
@@ -89,6 +94,7 @@ const DSARDashboard: React.FC = () => {
     },
     {
       id: '3',
+      tenantId: currentTenant?.id,
       dataSubject: 'Robert Johnson',
       email: 'robert.j@healthcare.com',
       requestType: 'portability',
@@ -118,6 +124,7 @@ const DSARDashboard: React.FC = () => {
     },
     {
       id: '4',
+      tenantId: currentTenant?.id,
       dataSubject: 'Ahmed Al-Rashid',
       email: 'ahmed.rashid@company.sa',
       requestType: 'rectification',
@@ -141,6 +148,7 @@ const DSARDashboard: React.FC = () => {
     },
     {
       id: '5',
+      tenantId: currentTenant?.id,
       dataSubject: 'Maria Garcia',
       email: 'maria.garcia@email.com',
       requestType: 'access',
@@ -220,7 +228,10 @@ const DSARDashboard: React.FC = () => {
     return diffDays;
   };
 
-  const filteredRequests = dsarRequests.filter(request => {
+  // Filter by tenant first, then apply other filters
+  const tenantFilteredRequests = filterByTenant(dsarRequests);
+  
+  const filteredRequests = tenantFilteredRequests.filter(request => {
     const matchesSearch = request.dataSubject.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          request.email.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesFilter = selectedFilter === 'all' || request.status === selectedFilter;
@@ -228,10 +239,10 @@ const DSARDashboard: React.FC = () => {
   });
 
   const statusCounts = {
-    pending: dsarRequests.filter(r => r.status === 'pending').length,
-    processing: dsarRequests.filter(r => r.status === 'processing').length,
-    completed: dsarRequests.filter(r => r.status === 'completed').length,
-    expired: dsarRequests.filter(r => r.status === 'expired' || r.status === 'rejected').length,
+    pending: tenantFilteredRequests.filter(r => r.status === 'pending').length,
+    processing: tenantFilteredRequests.filter(r => r.status === 'processing').length,
+    completed: tenantFilteredRequests.filter(r => r.status === 'completed').length,
+    expired: tenantFilteredRequests.filter(r => r.status === 'expired' || r.status === 'rejected').length,
   };
 
   const NewRequestModal = () => (
@@ -328,7 +339,7 @@ const DSARDashboard: React.FC = () => {
   );
 
   const tabs = [
-    { id: 'requests', label: 'All Requests', count: dsarRequests.length },
+    { id: 'requests', label: 'All Requests', count: tenantFilteredRequests.length },
     { id: 'pending', label: 'Pending Review', count: statusCounts.pending },
     { id: 'processing', label: 'In Progress', count: statusCounts.processing },
     { id: 'analytics', label: 'Analytics', count: null }
@@ -531,12 +542,15 @@ const DSARDashboard: React.FC = () => {
   };
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Data Subject Rights Management</h1>
-          <p className="text-gray-600 mt-1">Automated DSAR processing and compliance management</p>
-        </div>
+    <TenantAccessControl>
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900">Data Subject Rights Management</h1>
+            <p className="text-gray-600 mt-1">
+              Automated DSAR processing and compliance management for {currentTenant?.name}
+            </p>
+          </div>
         <div className="flex items-center space-x-2">
           <Button variant="outline">
             <Download className="h-4 w-4 mr-2" />
@@ -613,8 +627,9 @@ const DSARDashboard: React.FC = () => {
 
       {renderTabContent()}
 
-      {showNewRequest && <NewRequestModal />}
-    </div>
+        {showNewRequest && <NewRequestModal />}
+      </div>
+    </TenantAccessControl>
   );
 };
 

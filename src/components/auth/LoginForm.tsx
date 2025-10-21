@@ -1,25 +1,57 @@
 import React, { useState } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
-import { Shield, Eye, EyeOff } from 'lucide-react';
+import { Shield, Eye, EyeOff, Users, Key, Globe } from 'lucide-react';
 import Button from '../ui/Button';
+import MFAVerification from './MFAVerification';
 
 const LoginForm: React.FC = () => {
-  const { login, loading } = useAuth();
-  const [email, setEmail] = useState('admin@privacyguard.ai');
-  const [password, setPassword] = useState('demo123');
+  const { login, loginWithMFA, loading, requiresMFA, mfaMethods, sessionId } = useAuth();
+  const [email, setEmail] = useState('admin@privacyguard.com');
+  const [password, setPassword] = useState('Admin123!@#');
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
+  const [authProvider, setAuthProvider] = useState<'local' | 'active_directory' | 'saml' | 'oauth'>('local');
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
 
     try {
-      await login(email, password);
+      const result = await login(email, password, { 
+        type: authProvider, 
+        name: `${authProvider.toUpperCase()} Provider`,
+        config: {} 
+      });
+      
+      if (!result.success && result.error) {
+        setError(result.error);
+      }
     } catch (err) {
       setError('Invalid credentials. Please try again.');
     }
   };
+
+  const handleMFASuccess = async (newSessionId: string) => {
+    // MFA verification successful, user will be logged in automatically
+    console.log('MFA verification successful');
+  };
+
+  const handleMFACancel = () => {
+    // Reset MFA state and return to login
+    setError('');
+  };
+
+  // Show MFA verification if required
+  if (requiresMFA && sessionId && mfaMethods.length > 0) {
+    return (
+      <MFAVerification
+        sessionId={sessionId}
+        availableMethods={mfaMethods}
+        onSuccess={handleMFASuccess}
+        onCancel={handleMFACancel}
+      />
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-teal-50 flex items-center justify-center p-4">
@@ -32,19 +64,76 @@ const LoginForm: React.FC = () => {
           <p className="text-gray-600 mt-2">Enterprise Privacy Compliance Platform</p>
         </div>
 
+        {/* Authentication Provider Selection */}
+        <div className="mb-6">
+          <label className="block text-sm font-medium text-gray-700 mb-3">
+            Authentication Method
+          </label>
+          <div className="grid grid-cols-2 gap-2">
+            <button
+              type="button"
+              onClick={() => setAuthProvider('local')}
+              className={`p-3 border rounded-lg flex items-center justify-center space-x-2 ${
+                authProvider === 'local' 
+                  ? 'border-blue-500 bg-blue-50 text-blue-700' 
+                  : 'border-gray-300 hover:border-gray-400'
+              }`}
+            >
+              <Shield className="h-4 w-4" />
+              <span className="text-sm">Local</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setAuthProvider('active_directory')}
+              className={`p-3 border rounded-lg flex items-center justify-center space-x-2 ${
+                authProvider === 'active_directory' 
+                  ? 'border-blue-500 bg-blue-50 text-blue-700' 
+                  : 'border-gray-300 hover:border-gray-400'
+              }`}
+            >
+              <Users className="h-4 w-4" />
+              <span className="text-sm">AD</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setAuthProvider('saml')}
+              className={`p-3 border rounded-lg flex items-center justify-center space-x-2 ${
+                authProvider === 'saml' 
+                  ? 'border-blue-500 bg-blue-50 text-blue-700' 
+                  : 'border-gray-300 hover:border-gray-400'
+              }`}
+            >
+              <Key className="h-4 w-4" />
+              <span className="text-sm">SAML</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setAuthProvider('oauth')}
+              className={`p-3 border rounded-lg flex items-center justify-center space-x-2 ${
+                authProvider === 'oauth' 
+                  ? 'border-blue-500 bg-blue-50 text-blue-700' 
+                  : 'border-gray-300 hover:border-gray-400'
+              }`}
+            >
+              <Globe className="h-4 w-4" />
+              <span className="text-sm">OAuth</span>
+            </button>
+          </div>
+        </div>
+
         <form onSubmit={handleSubmit} className="space-y-6">
           <div>
             <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
-              Email Address
+              {authProvider === 'active_directory' ? 'Username' : 'Email Address'}
             </label>
             <input
               id="email"
-              type="email"
+              type={authProvider === 'active_directory' ? 'text' : 'email'}
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              placeholder="Enter your email"
+              placeholder={authProvider === 'active_directory' ? 'Enter your username' : 'Enter your email'}
             />
           </div>
 
@@ -91,10 +180,13 @@ const LoginForm: React.FC = () => {
           </p>
           <div className="text-sm text-gray-800 text-center mt-1 space-y-1">
             <p>
-              <strong>Admin:</strong> admin@privacyguard.ai / demo123
+              <strong>Admin:</strong> admin@privacyguard.com / Admin123!@#
             </p>
             <p>
-              <strong>DPO:</strong> demo@privacyguard.ai / demo123
+              <strong>DPO:</strong> dpo@privacyguard.com / DPO123!@#
+            </p>
+            <p>
+              <strong>Compliance:</strong> compliance@privacyguard.com / Compliance123!@#
             </p>
           </div>
         </div>

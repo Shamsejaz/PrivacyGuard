@@ -22,6 +22,28 @@ interface RiskScoreCardProps {
 }
 
 const RiskScoreCard: React.FC<RiskScoreCardProps> = ({ title, score, regulation, icon }) => {
+  // Handle undefined score prop
+  if (!score) {
+    return (
+      <Card className="hover:shadow-lg transition-all duration-200">
+        <div className="flex items-start justify-between mb-4">
+          <div className="flex items-center space-x-3">
+            {icon || <Shield className="h-6 w-6 text-blue-600" />}
+            <div>
+              <h3 className="font-semibold text-gray-900">{title}</h3>
+              {regulation && (
+                <Badge variant="info" size="sm">{regulation}</Badge>
+              )}
+            </div>
+          </div>
+        </div>
+        <div className="text-center mb-4">
+          <div className="text-4xl font-bold mb-2 text-gray-400">--</div>
+          <p className="text-sm text-gray-600">Loading...</p>
+        </div>
+      </Card>
+    );
+  }
   const getTrendIcon = (trend: string, change: number) => {
     const iconClass = "h-4 w-4";
     switch (trend) {

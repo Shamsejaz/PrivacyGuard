@@ -1,21 +1,12 @@
 import React, { useState } from 'react';
-import { Plus, Edit, Trash2, FileText } from 'lucide-react';
-
-interface LawfulBasis {
-  id: string;
-  processingActivity: string;
-  dataCategory: string;
-  lawfulBasis: string;
-  description: string;
-  dataSubjects: string;
-  retentionPeriod: string;
-  status: 'active' | 'inactive' | 'review';
-  lastReviewed: string;
-}
+import { Plus, Edit, Trash2, FileText, AlertTriangle } from 'lucide-react';
+import { useLawfulBasis } from '../../hooks/useGDPR';
+import { LawfulBasisRecord } from '../../services/gdprService';
 
 const LawfulBasisManager: React.FC = () => {
   const [showAddForm, setShowAddForm] = useState(false);
-  const [editingBasis, setEditingBasis] = useState<LawfulBasis | null>(null);
+  const [editingBasis, setEditingBasis] = useState<LawfulBasisRecord | null>(null);
+  const { records, loading, error, createRecord, updateRecord, deleteRecord } = useLawfulBasis();
 
   const lawfulBasisOptions = [
     { value: 'consent', label: 'Consent (Article 6(1)(a))', description: 'The data subject has given consent' },
@@ -26,97 +17,77 @@ const LawfulBasisManager: React.FC = () => {
     { value: 'legitimate_interests', label: 'Legitimate Interests (Article 6(1)(f))', description: 'Processing is necessary for legitimate interests' }
   ];
 
-  const [lawfulBases, setLawfulBases] = useState<LawfulBasis[]>([
-    {
-      id: '1',
-      processingActivity: 'Customer Registration',
-      dataCategory: 'Personal Identifiers',
-      lawfulBasis: 'contract',
-      description: 'Processing customer data for account creation and service provision',
-      dataSubjects: 'Customers',
-      retentionPeriod: '7 years after account closure',
-      status: 'active',
-      lastReviewed: '2024-01-15'
-    },
-    {
-      id: '2',
-      processingActivity: 'Marketing Communications',
-      dataCategory: 'Contact Information',
-      lawfulBasis: 'consent',
-      description: 'Sending promotional emails and newsletters to subscribers',
-      dataSubjects: 'Newsletter Subscribers',
-      retentionPeriod: 'Until consent withdrawn',
-      status: 'active',
-      lastReviewed: '2024-02-01'
-    },
-    {
-      id: '3',
-      processingActivity: 'Financial Reporting',
-      dataCategory: 'Transaction Data',
-      lawfulBasis: 'legal_obligation',
-      description: 'Processing transaction data for tax and regulatory compliance',
-      dataSubjects: 'Customers',
-      retentionPeriod: '10 years',
-      status: 'active',
-      lastReviewed: '2024-01-30'
-    }
-  ]);
+
 
   const [formData, setFormData] = useState({
     processingActivity: '',
-    dataCategory: '',
     lawfulBasis: '',
-    description: '',
-    dataSubjects: '',
+    dataCategories: [] as string[],
+    purposes: [] as string[],
+    dataSubjects: [] as string[],
     retentionPeriod: ''
   });
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (editingBasis) {
-      setLawfulBases(prev => prev.map(basis => 
-        basis.id === editingBasis.id 
-          ? { ...basis, ...formData, lastReviewed: new Date().toISOString().split('T')[0] }
-          : basis
-      ));
-      setEditingBasis(null);
-    } else {
-      const newBasis: LawfulBasis = {
-        id: Date.now().toString(),
-        ...formData,
-        status: 'active',
-        lastReviewed: new Date().toISOString().split('T')[0]
-      };
-      setLawfulBases(prev => [...prev, newBasis]);
+    try {
+      if (editingBasis) {
+        await updateRecord(editingBasis.id, {
+          processingActivity: formData.processingActivity,
+          lawfulBasis: formData.lawfulBasis,
+          dataCategories: formData.dataCategories,
+          purposes: formData.purposes,
+          dataSubjects: formData.dataSubjects,
+          retentionPeriod: formData.retentionPeriod
+        });
+        setEditingBasis(null);
+      } else {
+        await createRecord({
+          processingActivity: formData.processingActivity,
+          lawfulBasis: formData.lawfulBasis,
+          dataCategories: formData.dataCategories,
+          purposes: formData.purposes,
+          dataSubjects: formData.dataSubjects,
+          retentionPeriod: formData.retentionPeriod
+        });
+      }
+      
+      setFormData({
+        processingActivity: '',
+        lawfulBasis: '',
+        dataCategories: [],
+        purposes: [],
+        dataSubjects: [],
+        retentionPeriod: ''
+      });
+      setShowAddForm(false);
+    } catch (err) {
+      console.error('Error saving lawful basis record:', err);
+      // You could add a toast notification here
     }
-    
-    setFormData({
-      processingActivity: '',
-      dataCategory: '',
-      lawfulBasis: '',
-      description: '',
-      dataSubjects: '',
-      retentionPeriod: ''
-    });
-    setShowAddForm(false);
   };
 
-  const handleEdit = (basis: LawfulBasis) => {
+  const handleEdit = (basis: LawfulBasisRecord) => {
     setEditingBasis(basis);
     setFormData({
       processingActivity: basis.processingActivity,
-      dataCategory: basis.dataCategory,
       lawfulBasis: basis.lawfulBasis,
-      description: basis.description,
+      dataCategories: basis.dataCategories,
+      purposes: basis.purposes,
       dataSubjects: basis.dataSubjects,
       retentionPeriod: basis.retentionPeriod
     });
     setShowAddForm(true);
   };
 
-  const handleDelete = (id: string) => {
-    setLawfulBases(prev => prev.filter(basis => basis.id !== id));
+  const handleDelete = async (id: string) => {
+    try {
+      await deleteRecord(id);
+    } catch (err) {
+      console.error('Error deleting lawful basis record:', err);
+      // You could add a toast notification here
+    }
   };
 
   const getLawfulBasisLabel = (value: string) => {
@@ -131,6 +102,28 @@ const LawfulBasisManager: React.FC = () => {
       default: return 'bg-gray-100 text-gray-800';
     }
   };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="bg-red-50 border border-red-200 rounded-md p-4">
+        <div className="flex">
+          <AlertTriangle className="h-5 w-5 text-red-400" />
+          <div className="ml-3">
+            <h3 className="text-sm font-medium text-red-800">Error loading lawful basis records</h3>
+            <p className="text-sm text-red-700 mt-1">{error}</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -170,12 +163,13 @@ const LawfulBasisManager: React.FC = () => {
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Data Category
+                  Data Categories (comma-separated)
                 </label>
                 <input
                   type="text"
-                  value={formData.dataCategory}
-                  onChange={(e) => setFormData(prev => ({ ...prev, dataCategory: e.target.value }))}
+                  value={formData.dataCategories.join(', ')}
+                  onChange={(e) => setFormData(prev => ({ ...prev, dataCategories: e.target.value.split(',').map(s => s.trim()) }))}
+                  placeholder="e.g., Personal Identifiers, Contact Information"
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                   required
                 />
@@ -203,12 +197,13 @@ const LawfulBasisManager: React.FC = () => {
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Description
+                Purposes (comma-separated)
               </label>
               <textarea
-                value={formData.description}
-                onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
+                value={formData.purposes.join(', ')}
+                onChange={(e) => setFormData(prev => ({ ...prev, purposes: e.target.value.split(',').map(s => s.trim()) }))}
                 rows={3}
+                placeholder="e.g., Account creation, Service provision, Customer support"
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                 required
               />
@@ -217,12 +212,13 @@ const LawfulBasisManager: React.FC = () => {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Data Subjects
+                  Data Subjects (comma-separated)
                 </label>
                 <input
                   type="text"
-                  value={formData.dataSubjects}
-                  onChange={(e) => setFormData(prev => ({ ...prev, dataSubjects: e.target.value }))}
+                  value={formData.dataSubjects.join(', ')}
+                  onChange={(e) => setFormData(prev => ({ ...prev, dataSubjects: e.target.value.split(',').map(s => s.trim()) }))}
+                  placeholder="e.g., Customers, Employees, Prospects"
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                   required
                 />
@@ -249,10 +245,10 @@ const LawfulBasisManager: React.FC = () => {
                   setEditingBasis(null);
                   setFormData({
                     processingActivity: '',
-                    dataCategory: '',
                     lawfulBasis: '',
-                    description: '',
-                    dataSubjects: '',
+                    dataCategories: [],
+                    purposes: [],
+                    dataSubjects: [],
                     retentionPeriod: ''
                   });
                 }}
@@ -301,26 +297,26 @@ const LawfulBasisManager: React.FC = () => {
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
-              {lawfulBases.map((basis) => (
+              {records.map((basis) => (
                 <tr key={basis.id} className="hover:bg-gray-50">
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="flex items-center">
                       <FileText className="h-5 w-5 text-gray-400 mr-3" />
                       <div>
                         <div className="text-sm font-medium text-gray-900">{basis.processingActivity}</div>
-                        <div className="text-sm text-gray-500">{basis.description}</div>
+                        <div className="text-sm text-gray-500">{basis.purposes.join(', ')}</div>
                       </div>
                     </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    {basis.dataCategory}
+                    {basis.dataCategories.join(', ')}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="text-sm text-gray-900">{getLawfulBasisLabel(basis.lawfulBasis)}</div>
-                    <div className="text-sm text-gray-500">Last reviewed: {basis.lastReviewed}</div>
+                    <div className="text-sm text-gray-500">Last reviewed: {basis.reviewDate ? new Date(basis.reviewDate).toLocaleDateString() : 'Not reviewed'}</div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    {basis.dataSubjects}
+                    {basis.dataSubjects.join(', ')}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(basis.status)}`}>

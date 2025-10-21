@@ -1,6 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Eye, Settings } from 'lucide-react';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
+import { ThemeProvider } from './contexts/ThemeContext';
+import { TenantProvider } from './contexts/TenantContext';
+import { ComplianceProvider, useCompliance } from './contexts/ComplianceContext';
 import LoginForm from './components/auth/LoginForm';
 import Sidebar from './components/layout/Sidebar';
 import Header from './components/layout/Header';
@@ -14,26 +17,45 @@ import PolicyManagementDashboard from './components/policy-management/PolicyMana
 import DSARDashboard from './components/dsar/DSARDashboard';
 import DSARUserPortal from './components/dsar/portal/DSARUserPortal';
 import DSARAdminDashboard from './components/dsar/admin/DSARAdminDashboard';
-import ConsentManagement from './components/pdpl/ConsentManagement';
-import CrossBorderTransfers from './components/pdpl/CrossBorderTransfers';
-import RetentionPolicyEngine from './components/pdpl/RetentionPolicyEngine';
-import PDPLComplianceMatrix from './components/pdpl/PDPLComplianceMatrix';
-import GDPRDashboard from './components/gdpr/GDPRDashboard';
 import SettingsDashboard from './components/settings/SettingsDashboard';
 import AnalyticsDashboard from './components/analytics/AnalyticsDashboard';
 import { PrivacyComplyAgentDashboard } from './components/privacy-comply-agent';
+import ComplianceDashboard from './components/compliance/ComplianceDashboard';
+import { BreachManagementModule } from './components/breach-management/BreachManagementModule';
+import { NotificationSystem } from './components/ui/NotificationSystem';
+import { RealTimeDashboard } from './components/dashboard/RealTimeDashboard';
+import { useWebSocket } from './hooks/useWebSocket';
+import { ErrorBoundary } from './components/ui/ErrorBoundary';
+import { OfflineIndicator, PageLoading } from './components/ui/LoadingStates';
+import { SystemStatusIndicator, MaintenanceNotification } from './components/ui/SystemStatus';
+import { errorReportingService } from './services/errorReportingService';
 
 const DashboardContent: React.FC = () => {
   const [activeTab, setActiveTab] = useState('dashboard');
   const [showUserPortal, setShowUserPortal] = useState(false);
+  const { activeFramework, setActiveFramework, setActiveSection } = useCompliance();
+  
+  // Initialize WebSocket connection
+  const { isConnected } = useWebSocket({
+    autoConnect: true,
+    channels: ['system:notifications', 'dashboard:metrics', 'compliance:alerts']
+  });
 
   // Show user portal if URL contains portal parameter
-  React.useEffect(() => {
+  useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
     if (urlParams.get('portal') === 'true') {
       setShowUserPortal(true);
     }
   }, []);
+
+  // Handle compliance framework routing
+  useEffect(() => {
+    if (activeTab === 'compliance' && !activeFramework) {
+      setActiveFramework('GDPR');
+      setActiveSection('matrix');
+    }
+  }, [activeTab, activeFramework, setActiveFramework, setActiveSection]);
 
   if (showUserPortal) {
     return <DSARUserPortal />;
@@ -44,6 +66,7 @@ const DashboardContent: React.FC = () => {
       case 'dashboard':
         return (
           <div className="space-y-6">
+            <RealTimeDashboard />
             <RiskOverview />
             <DataSourcesOverview />
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -101,6 +124,8 @@ const DashboardContent: React.FC = () => {
             <p className="text-gray-600">Third-party vendor risk assessment and monitoring coming soon...</p>
           </div>
         );
+      case 'breach-management':
+        return <BreachManagementModule />;
       case 'incidents':
         return (
           <div className="bg-white p-8 rounded-lg shadow-sm">
@@ -109,28 +134,13 @@ const DashboardContent: React.FC = () => {
           </div>
         );
       case 'compliance':
-        return (
-          <div className="bg-white p-8 rounded-lg shadow-sm">
-            <h1 className="text-2xl font-bold text-gray-900 mb-4">Compliance Management</h1>
-            <p className="text-gray-600">Comprehensive compliance tracking and reporting coming soon...</p>
-          </div>
-        );
+        return <ComplianceDashboard />;
       case 'analytics':
         return (
           <AnalyticsDashboard />
         );
       case 'settings':
         return <SettingsDashboard />;
-      case 'pdpl-consent':
-        return <ConsentManagement />;
-      case 'pdpl-transfers':
-        return <CrossBorderTransfers />;
-      case 'pdpl-retention':
-        return <RetentionPolicyEngine />;
-      case 'pdpl-matrix':
-        return <PDPLComplianceMatrix />;
-      case 'gdpr':
-        return <GDPRDashboard />;
       case 'privacy-comply-agent':
         return <PrivacyComplyAgentDashboard />;
       default:
@@ -144,7 +154,7 @@ const DashboardContent: React.FC = () => {
   };
 
   return (
-    <div className="flex h-screen bg-gray-50">
+    <div className="flex h-screen bg-neutral-50 dark:bg-neutral-950 text-neutral-900 dark:text-neutral-50">
       <Sidebar activeTab={activeTab} setActiveTab={setActiveTab} />
       <div className="flex-1 flex flex-col overflow-hidden">
         <Header />
@@ -152,6 +162,7 @@ const DashboardContent: React.FC = () => {
           {renderContent()}
         </main>
       </div>
+      <NotificationSystem />
     </div>
   );
 };
@@ -160,24 +171,58 @@ const AppContent: React.FC = () => {
   const { isAuthenticated, loading } = useAuth();
 
   if (loading) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading...</p>
-        </div>
-      </div>
-    );
+    return <PageLoading message="Initializing PrivacyGuard..." />;
   }
 
   return isAuthenticated ? <DashboardContent /> : <LoginForm />;
 };
 
 function App() {
+  const [showMaintenance, setShowMaintenance] = useState(false);
+
+  // Check for maintenance notifications
+  useEffect(() => {
+    const checkMaintenance = async () => {
+      try {
+        const response = await fetch('/api/v1/monitoring/maintenance');
+        if (response.ok) {
+          const data = await response.json();
+          setShowMaintenance(data.scheduled);
+        }
+      } catch (error) {
+        // Silently fail - maintenance check is not critical
+      }
+    };
+
+    checkMaintenance();
+  }, []);
+
   return (
-    <AuthProvider>
-      <AppContent />
-    </AuthProvider>
+    <ErrorBoundary
+      onError={(error, errorInfo) => {
+        errorReportingService.reportError(error, {
+          category: 'javascript',
+          severity: 'high',
+          context: { componentStack: errorInfo.componentStack },
+        });
+      }}
+    >
+      <ThemeProvider>
+        <AuthProvider>
+          <TenantProvider>
+            <ComplianceProvider>
+              <OfflineIndicator />
+              <MaintenanceNotification
+                isVisible={showMaintenance}
+                message="Scheduled maintenance is planned for tonight at 2:00 AM UTC."
+                onDismiss={() => setShowMaintenance(false)}
+              />
+              <AppContent />
+            </ComplianceProvider>
+          </TenantProvider>
+        </AuthProvider>
+      </ThemeProvider>
+    </ErrorBoundary>
   );
 }
 

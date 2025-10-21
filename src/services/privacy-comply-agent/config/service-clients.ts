@@ -431,18 +431,8 @@ export class AWSServiceClients {
    */
   public getBedrockClient() {
     if (!this.clients.has('bedrock')) {
-      const config = this.configManager.getServiceCredentials('bedrock');
-      
-      // Placeholder client - will be replaced with actual AWS SDK client
-      const bedrockClient = {
-        config,
-        serviceName: 'bedrock',
-        modelId: this.configManager.getServiceConfig().bedrock.modelId,
-        // Methods will be implemented when AWS SDK is available
-        invokeModel: () => Promise.resolve({}),
-        listFoundationModels: () => Promise.resolve([])
-      };
-      
+      const BedrockService = require('../aws/BedrockService').default;
+      const bedrockClient = new BedrockService();
       this.clients.set('bedrock', bedrockClient);
     }
     return this.clients.get('bedrock');
