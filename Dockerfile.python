@@ -1,13 +1,26 @@
-FROM python:3.9-slim
+# Multi-stage build for Python PII Detection Service
+FROM python:3.11-slim as base
 
-WORKDIR /app
+# Set environment variables
+ENV PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1 \
+    PIP_NO_CACHE_DIR=1 \
+    PIP_DISABLE_PIP_VERSION_CHECK=1
 
 # Install system dependencies
 RUN apt-get update && apt-get install -y \
     build-essential \
+    curl \
+    git \
     && rm -rf /var/lib/apt/lists/*
 
-# Copy requirements
+# Create non-root user
+RUN groupadd -r piiservice && useradd -r -g piiservice piiservice
+
+# Set working directory
+WORKDIR /app
+
+# Copy requirements first for better caching
 COPY python_pii_service/requirements.txt .
 
 # Install Python dependencies
@@ -17,11 +30,62 @@ RUN pip install --no-cache-dir -r requirements.txt
 RUN python -m spacy download en_core_web_sm
 RUN python -m spacy download en_core_web_lg
 
+# Development stage
+FROM base as development
+
+# Install development dependencies
+RUN pip install --no-cache-dir \
+    pytest \
+    pytest-cov \
+    pytest-asyncio \
+    black \
+    flake8 \
+    mypy \
+    uvicorn[standard]
+
 # Copy application code
 COPY python_pii_service/ .
+
+# Change ownership to non-root user
+RUN chown -R piiservice:piiservice /app
+
+# Switch to non-root user
+USER piiservice
 
 # Expose port
 EXPOSE 8000
 
-# Run the application
-CMD ["python", "main.py"]
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
+    CMD curl -f http://localhost:8000/health || exit 1
+
+# Development command with hot reload
+CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000", "--reload", "--log-level", "debug"]
+
+# Production stage
+FROM base as production
+
+# Copy application code
+COPY python_pii_service/ .
+
+# Create directories for models and logs
+RUN mkdir -p /app/models /app/logs
+
+# Change ownership to non-root user
+RUN chown -R piiservice:piiservice /app
+
+# Switch to non-root user
+USER piiservice
+
+# Expose port
+EXPOSE 8000
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=120s --retries=3 \
+    CMD curl -f http://localhost:8000/health || exit 1
+
+# Production command with Gunicorn
+CMD ["gunicorn", "main:app", "-w", "4", "-k", "uvicorn.workers.UvicornWorker", "--bind", "0.0.0.0:8000", "--timeout", "300", "--keepalive", "5", "--max-requests", "1000", "--max-requests-jitter", "100", "--preload", "--log-level", "info"]
+
+# Default to production
+FROM production
