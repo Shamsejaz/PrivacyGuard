@@ -1,24 +1,31 @@
+# Development Dockerfile for Backend
 FROM node:20-alpine
+
+# Install curl for health checks and nodemon for development
+RUN apk add --no-cache curl
 
 # Set working directory
 WORKDIR /app
 
-# Install curl for health checks
-RUN apk add --no-cache curl
-
-# Create non-root user
-RUN addgroup -g 1001 -S nodejs && \
-    adduser -S backend -u 1001
-
-# Install dependencies (will be mounted via volume in dev)
+# Copy package files
 COPY package*.json ./
+
+# Install all dependencies (including dev dependencies)
 RUN npm install
+
+# Install nodemon globally for development
+RUN npm install -g nodemon
 
 # Copy source code
 COPY . .
 
-# Change ownership to non-root user
-RUN chown -R backend:nodejs /app
+# Create logs directory
+RUN mkdir -p logs
+
+# Create non-root user
+RUN addgroup -g 1001 -S nodejs && \
+    adduser -S backend -u 1001 && \
+    chown -R backend:nodejs /app
 
 # Switch to non-root user
 USER backend
@@ -27,8 +34,8 @@ USER backend
 EXPOSE 3001
 
 # Health check
-HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=3 \
   CMD curl -f http://localhost:3001/health || exit 1
 
-# Start the application using pre-built JavaScript files (bypasses TypeScript compilation)
-CMD ["node", "dist/server.js"]
+# Start development server with nodemon
+CMD ["npm", "run", "dev"]

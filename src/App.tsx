@@ -17,7 +17,7 @@ import PolicyManagementDashboard from './components/policy-management/PolicyMana
 import DSARDashboard from './components/dsar/DSARDashboard';
 import DSARUserPortal from './components/dsar/portal/DSARUserPortal';
 import DSARAdminDashboard from './components/dsar/admin/DSARAdminDashboard';
-import SettingsDashboard from './components/settings/SettingsDashboard';
+const SettingsDashboard = React.lazy(() => import('./components/settings/SettingsDashboard'));
 import AnalyticsDashboard from './components/analytics/AnalyticsDashboard';
 import { PrivacyComplyAgentDashboard } from './components/privacy-comply-agent';
 import ComplianceDashboard from './components/compliance/ComplianceDashboard';
@@ -140,7 +140,11 @@ const DashboardContent: React.FC = () => {
           <AnalyticsDashboard />
         );
       case 'settings':
-        return <SettingsDashboard />;
+        return (
+          <React.Suspense fallback={<PageLoading message="Loading Settings..." />}>
+            <SettingsDashboard />
+          </React.Suspense>
+        );
       case 'privacy-comply-agent':
         return <PrivacyComplyAgentDashboard />;
       default:

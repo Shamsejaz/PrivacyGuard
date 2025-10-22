@@ -40,7 +40,7 @@ const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab }) => {
     { id: 'vendors', label: 'Vendor Risk', icon: Building2, roles: ['dpo', 'compliance', 'admin'] },
     { id: 'breach-management', label: 'Breach Management', icon: Shield, roles: ['dpo', 'compliance', 'admin'] },
     { id: 'incidents', label: 'Incidents', icon: AlertTriangle, roles: ['dpo', 'compliance', 'admin'] },
-    { id: 'privacy-comply-agent', label: 'AI Compliance Agent', icon: Bot, roles: ['dpo', 'compliance', 'admin'] },
+    { id: 'privacy-comply-agent', label: 'AWS PrivacyComply Agent', icon: Bot, roles: ['dpo', 'compliance', 'admin'] },
     { id: 'analytics', label: 'Analytics', icon: BarChart3, roles: ['dpo', 'compliance', 'admin'] },
     { id: 'settings', label: 'Settings', icon: Settings, roles: ['admin'], adminOnly: true },
   ];

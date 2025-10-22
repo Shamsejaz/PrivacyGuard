@@ -20,6 +20,8 @@ import { AgentStatusDisplay } from './AgentStatusDisplay';
 import { ComplianceFindingsTable } from './ComplianceFindingsTable';
 import { RemediationWorkflowPanel } from './RemediationWorkflowPanel';
 import { NaturalLanguageQueryInterface } from './NaturalLanguageQueryInterface';
+import { SimpleOnboardingWizard } from './SimpleOnboardingWizard';
+import { SetupStatusCard } from './SetupStatusCard';
 
 interface AgentStatus {
   status: 'HEALTHY' | 'DEGRADED' | 'UNHEALTHY';
@@ -50,12 +52,31 @@ interface ComplianceMetrics {
   }>;
 }
 
+interface SetupStatus {
+  isSetupComplete: boolean;
+  setupProgress: number;
+  awsConfigured: boolean;
+  servicesEnabled: boolean;
+  validationPassed: boolean;
+  lastSetupAttempt?: string;
+  setupErrors: string[];
+}
+
+/**
+ * AWS PrivacyComply Agent Dashboard
+ * 
+ * Main dashboard for the AWS-specific privacy compliance agent.
+ * Part of a multi-cloud privacy compliance framework that includes
+ * dedicated agents for AWS, Azure, GCP, and other cloud providers.
+ */
 export const PrivacyComplyAgentDashboard: React.FC = () => {
   const [agentStatus, setAgentStatus] = useState<AgentStatus | null>(null);
   const [complianceMetrics, setComplianceMetrics] = useState<ComplianceMetrics | null>(null);
+  const [setupStatus, setSetupStatus] = useState<SetupStatus | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<'overview' | 'findings' | 'remediation' | 'query'>('overview');
+  const [showOnboarding, setShowOnboarding] = useState(false);
 
   useEffect(() => {
     loadDashboardData();
@@ -118,8 +139,23 @@ export const PrivacyComplyAgentDashboard: React.FC = () => {
         ]
       };
 
+      const mockSetupStatus: SetupStatus = {
+        isSetupComplete: false,
+        setupProgress: 25,
+        awsConfigured: false,
+        servicesEnabled: false,
+        validationPassed: false,
+        lastSetupAttempt: new Date(Date.now() - 3600000).toISOString(), // 1 hour ago
+        setupErrors: [
+          'AWS credentials not configured',
+          'Amazon Bedrock access not enabled',
+          'S3 bucket permissions insufficient'
+        ]
+      };
+
       setAgentStatus(mockAgentStatus);
       setComplianceMetrics(mockComplianceMetrics);
+      setSetupStatus(mockSetupStatus);
       setError(null);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load dashboard data');
@@ -141,6 +177,24 @@ export const PrivacyComplyAgentDashboard: React.FC = () => {
     } catch (err) {
       setError(err instanceof Error ? err.message : `Failed to ${action} agent`);
     }
+  };
+
+  const handleSetupComplete = () => {
+    setShowOnboarding(false);
+    setSetupStatus(prev => prev ? {
+      ...prev,
+      isSetupComplete: true,
+      setupProgress: 100,
+      awsConfigured: true,
+      servicesEnabled: true,
+      validationPassed: true,
+      setupErrors: []
+    } : null);
+    loadDashboardData();
+  };
+
+  const handleSetupSkip = () => {
+    setShowOnboarding(false);
   };
 
   const getStatusColor = (status: string) => {
@@ -168,7 +222,7 @@ export const PrivacyComplyAgentDashboard: React.FC = () => {
         <div className="flex items-center justify-center h-64">
           <div className="flex items-center space-x-2">
             <RefreshCw className="h-6 w-6 animate-spin" />
-            <span>Loading Privacy Comply Agent...</span>
+            <span>Loading AWS PrivacyComply Agent...</span>
           </div>
         </div>
       </div>
@@ -182,7 +236,7 @@ export const PrivacyComplyAgentDashboard: React.FC = () => {
           <div className="p-4">
             <div className="flex items-center space-x-2 text-red-800">
               <AlertTriangle className="h-5 w-5" />
-              <span className="font-medium">Error loading agent dashboard</span>
+              <span className="font-medium">Error loading AWS PrivacyComply Agent dashboard</span>
             </div>
             <p className="mt-2 text-red-700">{error}</p>
             <Button 
@@ -199,13 +253,33 @@ export const PrivacyComplyAgentDashboard: React.FC = () => {
     );
   }
 
+  // Show onboarding wizard if setup is not complete and user wants to set up
+  if (showOnboarding) {
+    return (
+      <SimpleOnboardingWizard
+        onComplete={handleSetupComplete}
+        onSkip={handleSetupSkip}
+      />
+    );
+  }
+
   return (
     <div className="p-6 space-y-6">
+      {/* Setup Status Card */}
+      {setupStatus && !setupStatus.isSetupComplete && (
+        <SetupStatusCard
+          setupStatus={setupStatus}
+          onStartSetup={() => setShowOnboarding(true)}
+          onResumeSetup={() => setShowOnboarding(true)}
+          onViewDetails={() => setShowOnboarding(true)}
+        />
+      )}
+
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Privacy Comply Agent</h1>
-          <p className="text-gray-600">Autonomous AI-powered privacy compliance monitoring and remediation</p>
+          <h1 className="text-2xl font-bold text-gray-900">AWS PrivacyComply Agent</h1>
+          <p className="text-gray-600">Autonomous AI-powered privacy compliance monitoring and remediation for AWS</p>
         </div>
         <div className="flex items-center space-x-3">
           <Button

@@ -1,7 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { Settings, Key, Shield, Bell, Globe, Users, Database } from 'lucide-react';
+import { Settings, Key, Shield, Bell, Globe, Users, Database, Lock, UserCog } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import APISettingsPanel from './APISettingsPanel';
+import AuthenticationPanel from './AuthenticationPanel';
+const UserManagementPanel = React.lazy(() => import('./UserManagementPanel'));
+import SystemConfigPanel from './SystemConfigPanel';
+import AdminAPIPanel from './AdminAPIPanel';
 import Card from '../ui/Card';
 import Button from '../ui/Button';
 
@@ -21,10 +25,12 @@ const SettingsDashboard: React.FC = () => {
 
   const tabs = [
     { id: 'api', label: 'API Settings', icon: Key },
+    { id: 'admin-api', label: 'Admin APIs', icon: Globe },
+    { id: 'authentication', label: 'Authentication', icon: Lock },
+    { id: 'users', label: 'User Management', icon: Users },
+    { id: 'system', label: 'System Config', icon: Settings },
     { id: 'security', label: 'Security', icon: Shield },
     { id: 'notifications', label: 'Notifications', icon: Bell },
-    { id: 'localization', label: 'Localization', icon: Globe },
-    { id: 'users', label: 'User Management', icon: Users },
     { id: 'data', label: 'Data Sources', icon: Database },
   ];
 
@@ -32,11 +38,23 @@ const SettingsDashboard: React.FC = () => {
     switch (activeTab) {
       case 'api':
         return <APISettingsPanel />;
+      case 'admin-api':
+        return <AdminAPIPanel />;
+      case 'authentication':
+        return <AuthenticationPanel />;
+      case 'users':
+        return (
+          <React.Suspense fallback={<div className="flex items-center justify-center py-8"><div className="text-gray-500">Loading User Management...</div></div>}>
+            <UserManagementPanel />
+          </React.Suspense>
+        );
+      case 'system':
+        return <SystemConfigPanel />;
       case 'security':
         return (
           <Card className="p-6">
-            <h2 className="text-xl font-semibold text-gray-900 mb-4">Security Settings</h2>
-            <p className="text-gray-600">Security settings coming soon...</p>
+            <h2 className="text-xl font-semibold text-gray-900 mb-4">Advanced Security Settings</h2>
+            <p className="text-gray-600">Advanced security settings coming soon...</p>
           </Card>
         );
       case 'notifications':
@@ -44,20 +62,6 @@ const SettingsDashboard: React.FC = () => {
           <Card className="p-6">
             <h2 className="text-xl font-semibold text-gray-900 mb-4">Notification Settings</h2>
             <p className="text-gray-600">Notification settings coming soon...</p>
-          </Card>
-        );
-      case 'localization':
-        return (
-          <Card className="p-6">
-            <h2 className="text-xl font-semibold text-gray-900 mb-4">Localization Settings</h2>
-            <p className="text-gray-600">Localization settings coming soon...</p>
-          </Card>
-        );
-      case 'users':
-        return (
-          <Card className="p-6">
-            <h2 className="text-xl font-semibold text-gray-900 mb-4">User Management</h2>
-            <p className="text-gray-600">User management settings coming soon...</p>
           </Card>
         );
       case 'data':

@@ -1,47 +1,69 @@
 # Implementation Plan
 
-- [ ] 1. Set up core infrastructure and MCP connector framework
+- [x] 1. Set up core infrastructure and MCP connector framework
+
+
+
+
+
   - Create directory structure for dark web intelligence components
   - Set up AWS Lambda function templates for serverless architecture
   - Configure API Gateway endpoints for dark web monitoring operations
   - Implement base MCP connector interface for threat intelligence APIs
   - _Requirements: 6.1, 6.2_
 
-- [ ] 1.1 Create MCP Dark Web Connector base implementation
+- [x] 1.1 Create MCP Dark Web Connector base implementation
+
+
   - Implement MCPConnector abstract class with authentication and rate limiting
   - Create connector registry for managing multiple threat intelligence sources
   - Add credential management integration with AWS Secrets Manager
   - Implement health monitoring and error handling for external APIs
   - _Requirements: 6.1, 6.2, 6.5_
 
-- [ ] 1.2 Set up AWS infrastructure components
+- [x] 1.2 Set up AWS infrastructure components
+
+
   - Configure S3 bucket for evidence storage with KMS encryption
   - Set up DynamoDB tables for scan results and takedown actions
   - Create SNS topics for notification delivery
   - Configure CloudTrail for audit logging
   - _Requirements: 3.1, 3.2, 3.3_
 
-- [ ] 1.3 Implement secure credential management
+- [x] 1.3 Implement secure credential management
+
+
   - Create AWS Secrets Manager integration for API keys
   - Implement automatic credential rotation mechanisms
   - Add IAM roles and policies with least privilege access
   - Create credential validation and health check functions
   - _Requirements: 6.1, 6.4_
 
-- [ ] 1.4 Write unit tests for infrastructure components
+
+
+- [x] 1.4 Write unit tests for infrastructure components
+
+
+
+
+
   - Test MCP connector base functionality with mocked APIs
   - Validate AWS service integrations with LocalStack
   - Test credential management and rotation logic
   - _Requirements: 6.1, 6.2_
 
+
 - [ ] 2. Implement threat intelligence API connectors
+
   - Create Constella Intelligence connector for credential monitoring
   - Implement IntSights connector for dark web marketplace scanning
   - Build DeHashed connector for breach database searches
   - Add support for custom threat feeds and OSINT sources
+
   - _Requirements: 1.1, 1.2_
 
-- [ ] 2.1 Build Constella Intelligence MCP connector
+- [x] 2.1 Build Constella Intelligence MCP connector
+
   - Implement credential search functionality with email and domain queries
   - Add API key hash monitoring for exposed credentials
   - Create result parsing and normalization logic
@@ -49,6 +71,8 @@
   - _Requirements: 1.1, 1.5_
 
 - [ ] 2.2 Implement IntSights dark web marketplace connector
+
+
   - Create marketplace monitoring for leaked data and credentials
   - Implement keyword-based scanning for corporate data exposure
   - Add result classification and risk scoring logic
@@ -68,19 +92,28 @@
   - Test error handling and fallback mechanisms
   - _Requirements: 1.1, 1.2_
 
-- [ ] 3. Build Bedrock intelligence engine for threat analysis
+- [-] 3. Build Bedrock intelligence engine for threat analysis
+
+
+
+
+
   - Integrate AWS Bedrock SDK for Claude/Titan model access
   - Implement threat data analysis and risk scoring algorithms
   - Create PII redaction and sanitization logic
   - Build intelligent recommendation engine for response actions
   - _Requirements: 1.3, 1.5_
 
-- [ ] 3.1 Create Bedrock service integration
+- [x] 3.1 Create Bedrock service integration
+
+
   - Set up AWS Bedrock client with proper IAM permissions
   - Implement streaming response handling for real-time analysis
   - Create prompt templates for threat intelligence analysis
   - Add error handling and retry logic for Bedrock API calls
   - _Requirements: 1.3, 1.5_
+
+
 
 - [ ] 3.2 Implement threat analysis and risk scoring
   - Create risk assessment algorithms based on exposure type and recency

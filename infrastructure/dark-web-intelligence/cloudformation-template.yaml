@@ -1,0 +1,439 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 'Dark Web Intelligence & Automated Takedown Infrastructure'
+
+Parameters:
+  Environment:
+    Type: String
+    Default: 'dev'
+    AllowedValues: ['dev', 'staging', 'prod']
+    Description: 'Environment name'
+  
+  KMSKeyAlias:
+    Type: String
+    Default: 'alias/privacyguard-darkweb'
+    Description: 'KMS key alias for encryption'
+
+Resources:
+  # KMS Key for encryption
+  DarkWebKMSKey:
+    Type: AWS::KMS::Key
+    Properties:
+      Description: 'KMS key for Dark Web Intelligence encryption'
+      KeyPolicy:
+        Statement:
+          - Sid: Enable IAM User Permissions
+            Effect: Allow
+            Principal:
+              AWS: !Sub 'arn:aws:iam::${AWS::AccountId}:root'
+            Action: 'kms:*'
+            Resource: '*'
+          - Sid: Allow use of the key for Dark Web services
+            Effect: Allow
+            Principal:
+              Service:
+                - lambda.amazonaws.com
+                - s3.amazonaws.com
+                - dynamodb.amazonaws.com
+                - sns.amazonaws.com
+            Action:
+              - 'kms:Encrypt'
+              - 'kms:Decrypt'
+              - 'kms:ReEncrypt*'
+              - 'kms:GenerateDataKey*'
+              - 'kms:DescribeKey'
+            Resource: '*'
+
+  DarkWebKMSKeyAlias:
+    Type: AWS::KMS::Alias
+    Properties:
+      AliasName: !Ref KMSKeyAlias
+      TargetKeyId: !Ref DarkWebKMSKey  # S3 
+Bucket for Evidence Storage
+  DarkWebEvidenceBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub 'privacyguard-darkweb-evidence-${Environment}-${AWS::AccountId}'
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: aws:kms
+              KMSMasterKeyID: !Ref DarkWebKMSKey
+            BucketKeyEnabled: true
+      VersioningConfiguration:
+        Status: Enabled
+      LifecycleConfiguration:
+        Rules:
+          - Id: EvidenceRetentionRule
+            Status: Enabled
+            ExpirationInDays: 2555  # 7 years for compliance
+            NoncurrentVersionExpirationInDays: 30
+          - Id: IncompleteMultipartUploads
+            Status: Enabled
+            AbortIncompleteMultipartUpload:
+              DaysAfterInitiation: 7
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+
+  # DynamoDB Tables
+  DarkWebFindingsTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: !Sub 'DarkWebFindings-${Environment}'
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: findingId
+          AttributeType: S
+        - AttributeName: scanId
+          AttributeType: S
+        - AttributeName: discoveredAt
+          AttributeType: S
+        - AttributeName: riskScore
+          AttributeType: N
+      KeySchema:
+        - AttributeName: findingId
+          KeyType: HASH
+      GlobalSecondaryIndexes:
+        - IndexName: ScanIdIndex
+          KeySchema:
+            - AttributeName: scanId
+              KeyType: HASH
+            - AttributeName: discoveredAt
+              KeyType: RANGE
+          Projection:
+            ProjectionType: ALL
+        - IndexName: RiskScoreIndex
+          KeySchema:
+            - AttributeName: riskScore
+              KeyType: HASH
+            - AttributeName: discoveredAt
+              KeyType: RANGE
+          Projection:
+            ProjectionType: ALL
+      PointInTimeRecoverySpecification:
+        PointInTimeRecoveryEnabled: true
+      SSESpecification:
+        SSEEnabled: true
+        KMSMasterKeyId: !Ref DarkWebKMSKey
+      StreamSpecification:
+        StreamViewType: NEW_AND_OLD_IMAGES  Takedo
+wnActionsTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: !Sub 'TakedownActions-${Environment}'
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: actionId
+          AttributeType: S
+        - AttributeName: findingId
+          AttributeType: S
+        - AttributeName: initiatedAt
+          AttributeType: S
+        - AttributeName: status
+          AttributeType: S
+      KeySchema:
+        - AttributeName: actionId
+          KeyType: HASH
+      GlobalSecondaryIndexes:
+        - IndexName: FindingIdIndex
+          KeySchema:
+            - AttributeName: findingId
+              KeyType: HASH
+            - AttributeName: initiatedAt
+              KeyType: RANGE
+          Projection:
+            ProjectionType: ALL
+        - IndexName: StatusIndex
+          KeySchema:
+            - AttributeName: status
+              KeyType: HASH
+            - AttributeName: initiatedAt
+              KeyType: RANGE
+          Projection:
+            ProjectionType: ALL
+      PointInTimeRecoverySpecification:
+        PointInTimeRecoveryEnabled: true
+      SSESpecification:
+        SSEEnabled: true
+        KMSMasterKeyId: !Ref DarkWebKMSKey
+
+  ScanConfigurationsTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: !Sub 'DarkWebScanConfigs-${Environment}'
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: configId
+          AttributeType: S
+        - AttributeName: isActive
+          AttributeType: S
+        - AttributeName: createdAt
+          AttributeType: S
+      KeySchema:
+        - AttributeName: configId
+          KeyType: HASH
+      GlobalSecondaryIndexes:
+        - IndexName: ActiveConfigsIndex
+          KeySchema:
+            - AttributeName: isActive
+              KeyType: HASH
+            - AttributeName: createdAt
+              KeyType: RANGE
+          Projection:
+            ProjectionType: ALL
+      PointInTimeRecoverySpecification:
+        PointInTimeRecoveryEnabled: true
+      SSESpecification:
+        SSEEnabled: true
+        KMSMasterKeyId: !Ref DarkWebKMSKey  #
+ SNS Topics for Notifications
+  DarkWebCriticalAlertsTopic:
+    Type: AWS::SNS::Topic
+    Properties:
+      TopicName: !Sub 'DarkWebCriticalAlerts-${Environment}'
+      DisplayName: 'Dark Web Critical Alerts'
+      KmsMasterKeyId: !Ref DarkWebKMSKey
+
+  DarkWebTakedownUpdatesTopic:
+    Type: AWS::SNS::Topic
+    Properties:
+      TopicName: !Sub 'DarkWebTakedownUpdates-${Environment}'
+      DisplayName: 'Dark Web Takedown Updates'
+      KmsMasterKeyId: !Ref DarkWebKMSKey
+
+  DarkWebComplianceReportsTopic:
+    Type: AWS::SNS::Topic
+    Properties:
+      TopicName: !Sub 'DarkWebComplianceReports-${Environment}'
+      DisplayName: 'Dark Web Compliance Reports'
+      KmsMasterKeyId: !Ref DarkWebKMSKey
+
+  # CloudWatch Log Group
+  DarkWebLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub '/aws/lambda/darkweb-intelligence-${Environment}'
+      RetentionInDays: 30
+      KmsKeyId: !GetAtt DarkWebKMSKey.Arn
+
+  # Separate S3 bucket for CloudTrail audit logs
+  DarkWebAuditBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub 'privacyguard-darkweb-audit-${Environment}-${AWS::AccountId}'
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: aws:kms
+              KMSMasterKeyID: !Ref DarkWebKMSKey
+      VersioningConfiguration:
+        Status: Enabled
+      LifecycleConfiguration:
+        Rules:
+          - Id: AuditLogRetentionRule
+            Status: Enabled
+            ExpirationInDays: 2555  # 7 years for compliance
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true  # 
+CloudTrail for Audit Logging
+  DarkWebCloudTrail:
+    Type: AWS::CloudTrail::Trail
+    Properties:
+      TrailName: !Sub 'DarkWebIntelligenceTrail-${Environment}'
+      S3BucketName: !Ref DarkWebAuditBucket
+      S3KeyPrefix: 'cloudtrail-logs/'
+      IncludeGlobalServiceEvents: true
+      IsMultiRegionTrail: true
+      EnableLogFileValidation: true
+      KMSKeyId: !Ref DarkWebKMSKey
+      EventSelectors:
+        - ReadWriteType: All
+          IncludeManagementEvents: true
+          DataResources:
+            - Type: 'AWS::S3::Object'
+              Values: 
+                - !Sub '${DarkWebEvidenceBucket}/*'
+            - Type: 'AWS::DynamoDB::Table'
+              Values:
+                - !GetAtt DarkWebFindingsTable.Arn
+                - !GetAtt TakedownActionsTable.Arn
+                - !GetAtt ScanConfigurationsTable.Arn
+
+  # CloudTrail Bucket Policy
+  DarkWebAuditBucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref DarkWebAuditBucket
+      PolicyDocument:
+        Statement:
+          - Sid: AWSCloudTrailAclCheck
+            Effect: Allow
+            Principal:
+              Service: cloudtrail.amazonaws.com
+            Action: s3:GetBucketAcl
+            Resource: !GetAtt DarkWebAuditBucket.Arn
+          - Sid: AWSCloudTrailWrite
+            Effect: Allow
+            Principal:
+              Service: cloudtrail.amazonaws.com
+            Action: s3:PutObject
+            Resource: !Sub '${DarkWebAuditBucket.Arn}/*'
+            Condition:
+              StringEquals:
+                's3:x-amz-acl': bucket-owner-full-control  # 
+IAM Role for Lambda Functions
+  DarkWebLambdaExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub 'DarkWebLambdaExecutionRole-${Environment}'
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+      Policies:
+        - PolicyName: DarkWebIntelligencePolicy
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - 's3:GetObject'
+                  - 's3:PutObject'
+                  - 's3:DeleteObject'
+                  - 's3:GetObjectVersion'
+                Resource: 
+                  - !Sub '${DarkWebEvidenceBucket}/*'
+              - Effect: Allow
+                Action:
+                  - 's3:ListBucket'
+                  - 's3:GetBucketLocation'
+                Resource: 
+                  - !GetAtt DarkWebEvidenceBucket.Arn
+              - Effect: Allow
+                Action:
+                  - 'dynamodb:GetItem'
+                  - 'dynamodb:PutItem'
+                  - 'dynamodb:UpdateItem'
+                  - 'dynamodb:DeleteItem'
+                  - 'dynamodb:Query'
+                  - 'dynamodb:Scan'
+                Resource:
+                  - !GetAtt DarkWebFindingsTable.Arn
+                  - !GetAtt TakedownActionsTable.Arn
+                  - !GetAtt ScanConfigurationsTable.Arn
+                  - !Sub '${DarkWebFindingsTable.Arn}/index/*'
+                  - !Sub '${TakedownActionsTable.Arn}/index/*'
+                  - !Sub '${ScanConfigurationsTable.Arn}/index/*'
+              - Effect: Allow
+                Action:
+                  - 'sns:Publish'
+                Resource:
+                  - !Ref DarkWebCriticalAlertsTopic
+                  - !Ref DarkWebTakedownUpdatesTopic
+                  - !Ref DarkWebComplianceReportsTopic
+              - Effect: Allow
+                Action:
+                  - 'secretsmanager:GetSecretValue'
+                  - 'secretsmanager:DescribeSecret'
+                Resource: !Sub 'arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:darkweb/*'
+              - Effect: Allow
+                Action:
+                  - 'kms:Encrypt'
+                  - 'kms:Decrypt'
+                  - 'kms:ReEncrypt*'
+                  - 'kms:GenerateDataKey*'
+                  - 'kms:DescribeKey'
+                Resource: !GetAtt DarkWebKMSKey.Arn
+              - Effect: Allow
+                Action:
+                  - 'bedrock:InvokeModel'
+                  - 'bedrock:InvokeModelWithResponseStream'
+                Resource: '*'
+              - Effect: Allow
+                Action:
+                  - 'logs:CreateLogGroup'
+                  - 'logs:CreateLogStream'
+                  - 'logs:PutLogEvents'
+                Resource: !Sub 'arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/darkweb-*'Output
+s:
+  DarkWebKMSKeyId:
+    Description: 'KMS Key ID for Dark Web Intelligence encryption'
+    Value: !Ref DarkWebKMSKey
+    Export:
+      Name: !Sub '${AWS::StackName}-KMSKeyId'
+
+  DarkWebKMSKeyArn:
+    Description: 'KMS Key ARN for Dark Web Intelligence encryption'
+    Value: !GetAtt DarkWebKMSKey.Arn
+    Export:
+      Name: !Sub '${AWS::StackName}-KMSKeyArn'
+
+  EvidenceBucketName:
+    Description: 'S3 bucket name for evidence storage'
+    Value: !Ref DarkWebEvidenceBucket
+    Export:
+      Name: !Sub '${AWS::StackName}-EvidenceBucket'
+
+  EvidenceBucketArn:
+    Description: 'S3 bucket ARN for evidence storage'
+    Value: !GetAtt DarkWebEvidenceBucket.Arn
+    Export:
+      Name: !Sub '${AWS::StackName}-EvidenceBucketArn'
+
+  FindingsTableName:
+    Description: 'DynamoDB table name for dark web findings'
+    Value: !Ref DarkWebFindingsTable
+    Export:
+      Name: !Sub '${AWS::StackName}-FindingsTable'
+
+  TakedownActionsTableName:
+    Description: 'DynamoDB table name for takedown actions'
+    Value: !Ref TakedownActionsTable
+    Export:
+      Name: !Sub '${AWS::StackName}-TakedownActionsTable'
+
+  ScanConfigsTableName:
+    Description: 'DynamoDB table name for scan configurations'
+    Value: !Ref ScanConfigurationsTable
+    Export:
+      Name: !Sub '${AWS::StackName}-ScanConfigsTable'
+
+  CriticalAlertsTopicArn:
+    Description: 'SNS topic ARN for critical alerts'
+    Value: !Ref DarkWebCriticalAlertsTopic
+    Export:
+      Name: !Sub '${AWS::StackName}-CriticalAlertsTopic'
+
+  TakedownUpdatesTopicArn:
+    Description: 'SNS topic ARN for takedown updates'
+    Value: !Ref DarkWebTakedownUpdatesTopic
+    Export:
+      Name: !Sub '${AWS::StackName}-TakedownUpdatesTopic'
+
+  ComplianceReportsTopicArn:
+    Description: 'SNS topic ARN for compliance reports'
+    Value: !Ref DarkWebComplianceReportsTopic
+    Export:
+      Name: !Sub '${AWS::StackName}-ComplianceReportsTopic'
+
+  LambdaExecutionRoleArn:
+    Description: 'IAM role ARN for Lambda execution'
+    Value: !GetAtt DarkWebLambdaExecutionRole.Arn
+    Export:
+      Name: !Sub '${AWS::StackName}-LambdaExecutionRole'
+
+  CloudTrailArn:
+    Description: 'CloudTrail ARN for audit logging'
+    Value: !GetAtt DarkWebCloudTrail.Arn
+    Export:
+      Name: !Sub '${AWS::StackName}-CloudTrail'

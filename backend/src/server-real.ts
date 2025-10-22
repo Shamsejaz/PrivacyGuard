@@ -1855,6 +1855,797 @@ app.post('/api/vendor-risk/certifications', authenticateToken, (req: Authenticat
   }
 });
 
+// Additional vendor assessment endpoints
+app.get('/api/vendor-risk/assessments/:id', authenticateToken, (req: AuthenticatedRequest, res: Response) => {
+  const { id } = req.params;
+  const assessment = vendorAssessments.get(id);
+  
+  if (!assessment) {
+    return res.status(404).json({
+      success: false,
+      error: 'Assessment not found'
+    });
+  }
+  
+  res.json({
+    success: true,
+    data: assessment
+  });
+});
+
+app.put('/api/vendor-risk/assessments/:id', authenticateToken, (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const { id } = req.params;
+    const updates = req.body;
+    const assessment = vendorAssessments.get(id);
+    
+    if (!assessment) {
+      return res.status(404).json({
+        success: false,
+        error: 'Assessment not found'
+      });
+    }
+    
+    const updatedAssessment = {
+      ...assessment,
+      ...updates,
+      updatedAt: new Date()
+    };
+    
+    vendorAssessments.set(id, updatedAssessment);
+    
+    res.json({
+      success: true,
+      data: updatedAssessment
+    });
+  } catch (error) {
+    res.status(400).json({
+      success: false,
+      error: 'Failed to update assessment'
+    });
+  }
+});
+
+app.post('/api/vendor-risk/assessments/:id/responses', authenticateToken, (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const { id } = req.params;
+    const { responses } = req.body;
+    const assessment = vendorAssessments.get(id);
+    
+    if (!assessment) {
+      return res.status(404).json({
+        success: false,
+        error: 'Assessment not found'
+      });
+    }
+    
+    const updatedAssessment = {
+      ...assessment,
+      responses,
+      status: 'in_progress',
+      updatedAt: new Date()
+    };
+    
+    vendorAssessments.set(id, updatedAssessment);
+    
+    res.json({
+      success: true,
+      data: updatedAssessment
+    });
+  } catch (error) {
+    res.status(400).json({
+      success: false,
+      error: 'Failed to submit assessment responses'
+    });
+  }
+});
+
+app.post('/api/vendor-risk/assessments/:id/approve', authenticateToken, (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const { id } = req.params;
+    const { findings } = req.body;
+    const assessment = vendorAssessments.get(id);
+    
+    if (!assessment) {
+      return res.status(404).json({
+        success: false,
+        error: 'Assessment not found'
+      });
+    }
+    
+    const updatedAssessment = {
+      ...assessment,
+      status: 'approved',
+      findings,
+      approvedBy: req.user.email,
+      approvedAt: new Date(),
+      updatedAt: new Date()
+    };
+    
+    vendorAssessments.set(id, updatedAssessment);
+    
+    res.json({
+      success: true,
+      data: updatedAssessment
+    });
+  } catch (error) {
+    res.status(400).json({
+      success: false,
+      error: 'Failed to approve assessment'
+    });
+  }
+});
+
+// Questionnaire endpoints
+const questionnaires = new Map();
+
+// Initialize questionnaires
+const initializeQuestionnaires = () => {
+  const sampleQuestionnaire = {
+    id: '1',
+    name: 'Security Assessment Questionnaire',
+    description: 'Comprehensive security assessment for vendors',
+    categories: [
+      {
+        id: '1',
+        name: 'Data Security',
+        questions: [
+          {
+            id: '1',
+            question: 'Do you encrypt data at rest?',
+            type: 'boolean',
+            required: true,
+            weight: 10
+          },
+          {
+            id: '2',
+            question: 'What encryption standards do you use?',
+            type: 'text',
+            required: true,
+            weight: 5
+          }
+        ]
+      }
+    ],
+    createdAt: new Date('2024-01-01'),
+    updatedAt: new Date('2024-01-01')
+  };
+  
+  questionnaires.set('1', sampleQuestionnaire);
+};
+
+app.get('/api/vendor-risk/questionnaires', authenticateToken, (req: AuthenticatedRequest, res: Response) => {
+  const questionnairesList = Array.from(questionnaires.values());
+  
+  res.json({
+    success: true,
+    data: questionnairesList
+  });
+});
+
+app.get('/api/vendor-risk/questionnaires/:id', authenticateToken, (req: AuthenticatedRequest, res: Response) => {
+  const { id } = req.params;
+  const questionnaire = questionnaires.get(id);
+  
+  if (!questionnaire) {
+    return res.status(404).json({
+      success: false,
+      error: 'Questionnaire not found'
+    });
+  }
+  
+  res.json({
+    success: true,
+    data: questionnaire
+  });
+});
+
+app.post('/api/vendor-risk/questionnaires', authenticateToken, (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const questionnaireData = req.body;
+    const id = Date.now().toString();
+    
+    const newQuestionnaire = {
+      id,
+      ...questionnaireData,
+      createdAt: new Date(),
+      updatedAt: new Date()
+    };
+    
+    questionnaires.set(id, newQuestionnaire);
+    
+    res.status(201).json({
+      success: true,
+      data: newQuestionnaire
+    });
+  } catch (error) {
+    res.status(400).json({
+      success: false,
+      error: 'Failed to create questionnaire'
+    });
+  }
+});
+
+app.put('/api/vendor-risk/questionnaires/:id', authenticateToken, (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const { id } = req.params;
+    const updates = req.body;
+    const questionnaire = questionnaires.get(id);
+    
+    if (!questionnaire) {
+      return res.status(404).json({
+        success: false,
+        error: 'Questionnaire not found'
+      });
+    }
+    
+    const updatedQuestionnaire = {
+      ...questionnaire,
+      ...updates,
+      updatedAt: new Date()
+    };
+    
+    questionnaires.set(id, updatedQuestionnaire);
+    
+    res.json({
+      success: true,
+      data: updatedQuestionnaire
+    });
+  } catch (error) {
+    res.status(400).json({
+      success: false,
+      error: 'Failed to update questionnaire'
+    });
+  }
+});
+
+// DPA endpoints
+const dpas = new Map();
+
+// Initialize DPAs
+const initializeDPAs = () => {
+  const sampleDPA = {
+    id: '1',
+    vendorId: '1',
+    title: 'Data Processing Agreement - CloudTech Solutions',
+    status: 'active',
+    signedDate: new Date('2024-01-01'),
+    expiryDate: new Date('2025-01-01'),
+    renewalPeriod: 12,
+    dataCategories: ['Customer Data', 'Transaction Records'],
+    processingPurposes: ['Service Provision', 'Analytics'],
+    securityMeasures: ['Encryption', 'Access Controls', 'Audit Logging'],
+    createdAt: new Date('2024-01-01'),
+    updatedAt: new Date('2024-01-01')
+  };
+  
+  dpas.set('1', sampleDPA);
+};
+
+app.get('/api/vendor-risk/dpas', authenticateToken, (req: AuthenticatedRequest, res: Response) => {
+  const vendorId = req.query.vendorId as string;
+  
+  let dpasList = Array.from(dpas.values());
+  
+  if (vendorId) {
+    dpasList = dpasList.filter(dpa => dpa.vendorId === vendorId);
+  }
+  
+  res.json({
+    success: true,
+    data: dpasList
+  });
+});
+
+app.get('/api/vendor-risk/dpas/:id', authenticateToken, (req: AuthenticatedRequest, res: Response) => {
+  const { id } = req.params;
+  const dpa = dpas.get(id);
+  
+  if (!dpa) {
+    return res.status(404).json({
+      success: false,
+      error: 'DPA not found'
+    });
+  }
+  
+  res.json({
+    success: true,
+    data: dpa
+  });
+});
+
+app.post('/api/vendor-risk/dpas', authenticateToken, (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const dpaData = req.body;
+    const id = Date.now().toString();
+    
+    const newDPA = {
+      id,
+      ...dpaData,
+      status: 'draft',
+      createdAt: new Date(),
+      updatedAt: new Date()
+    };
+    
+    dpas.set(id, newDPA);
+    
+    res.status(201).json({
+      success: true,
+      data: newDPA
+    });
+  } catch (error) {
+    res.status(400).json({
+      success: false,
+      error: 'Failed to create DPA'
+    });
+  }
+});
+
+app.put('/api/vendor-risk/dpas/:id', authenticateToken, (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const { id } = req.params;
+    const updates = req.body;
+    const dpa = dpas.get(id);
+    
+    if (!dpa) {
+      return res.status(404).json({
+        success: false,
+        error: 'DPA not found'
+      });
+    }
+    
+    const updatedDPA = {
+      ...dpa,
+      ...updates,
+      updatedAt: new Date()
+    };
+    
+    dpas.set(id, updatedDPA);
+    
+    res.json({
+      success: true,
+      data: updatedDPA
+    });
+  } catch (error) {
+    res.status(400).json({
+      success: false,
+      error: 'Failed to update DPA'
+    });
+  }
+});
+
+app.post('/api/vendor-risk/dpas/:id/renew', authenticateToken, (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const { id } = req.params;
+    const { renewalPeriod } = req.body;
+    const dpa = dpas.get(id);
+    
+    if (!dpa) {
+      return res.status(404).json({
+        success: false,
+        error: 'DPA not found'
+      });
+    }
+    
+    const currentExpiry = new Date(dpa.expiryDate);
+    const newExpiry = new Date(currentExpiry);
+    newExpiry.setMonth(newExpiry.getMonth() + renewalPeriod);
+    
+    const renewedDPA = {
+      ...dpa,
+      expiryDate: newExpiry,
+      renewalPeriod,
+      status: 'active',
+      renewedAt: new Date(),
+      updatedAt: new Date()
+    };
+    
+    dpas.set(id, renewedDPA);
+    
+    res.json({
+      success: true,
+      data: renewedDPA
+    });
+  } catch (error) {
+    res.status(400).json({
+      success: false,
+      error: 'Failed to renew DPA'
+    });
+  }
+});
+
+// Additional certification endpoints
+app.put('/api/vendor-risk/certifications/:id', authenticateToken, (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const { id } = req.params;
+    const updates = req.body;
+    const certification = vendorCertifications.get(id);
+    
+    if (!certification) {
+      return res.status(404).json({
+        success: false,
+        error: 'Certification not found'
+      });
+    }
+    
+    const updatedCertification = {
+      ...certification,
+      ...updates,
+      updatedAt: new Date()
+    };
+    
+    vendorCertifications.set(id, updatedCertification);
+    
+    res.json({
+      success: true,
+      data: updatedCertification
+    });
+  } catch (error) {
+    res.status(400).json({
+      success: false,
+      error: 'Failed to update certification'
+    });
+  }
+});
+
+app.post('/api/vendor-risk/certifications/:id/verify', authenticateToken, (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const { id } = req.params;
+    const certification = vendorCertifications.get(id);
+    
+    if (!certification) {
+      return res.status(404).json({
+        success: false,
+        error: 'Certification not found'
+      });
+    }
+    
+    const verifiedCertification = {
+      ...certification,
+      verificationStatus: 'verified',
+      verificationDate: new Date(),
+      verifiedBy: req.user.email,
+      updatedAt: new Date()
+    };
+    
+    vendorCertifications.set(id, verifiedCertification);
+    
+    res.json({
+      success: true,
+      data: verifiedCertification
+    });
+  } catch (error) {
+    res.status(400).json({
+      success: false,
+      error: 'Failed to verify certification'
+    });
+  }
+});
+
+// Risk scoring and analytics endpoints
+app.post('/api/vendor-risk/vendors/:id/risk-score', authenticateToken, (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const { id } = req.params;
+    const vendor = vendors.get(id);
+    
+    if (!vendor) {
+      return res.status(404).json({
+        success: false,
+        error: 'Vendor not found'
+      });
+    }
+    
+    // Simulate risk score calculation
+    const riskScore = {
+      score: Math.floor(Math.random() * 100),
+      level: ['low', 'medium', 'high'][Math.floor(Math.random() * 3)],
+      factors: [
+        { category: 'Security', score: 85, weight: 0.4 },
+        { category: 'Compliance', score: 92, weight: 0.3 },
+        { category: 'Financial', score: 78, weight: 0.3 }
+      ],
+      calculatedAt: new Date()
+    };
+    
+    // Update vendor with new risk level
+    const updatedVendor = {
+      ...vendor,
+      riskLevel: riskScore.level,
+      lastRiskAssessment: new Date(),
+      updatedAt: new Date()
+    };
+    
+    vendors.set(id, updatedVendor);
+    
+    res.json({
+      success: true,
+      data: riskScore
+    });
+  } catch (error) {
+    res.status(400).json({
+      success: false,
+      error: 'Failed to calculate risk score'
+    });
+  }
+});
+
+app.get('/api/vendor-risk/vendors/:id/analytics', authenticateToken, (req: AuthenticatedRequest, res: Response) => {
+  const { id } = req.params;
+  const vendor = vendors.get(id);
+  
+  if (!vendor) {
+    return res.status(404).json({
+      success: false,
+      error: 'Vendor not found'
+    });
+  }
+  
+  const analytics = {
+    performanceMetrics: {
+      assessmentScore: Math.floor(Math.random() * 100),
+      complianceRate: Math.floor(Math.random() * 100),
+      responseTime: Math.floor(Math.random() * 48) + 1,
+      issueResolutionTime: Math.floor(Math.random() * 72) + 1
+    },
+    trends: [
+      { date: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000), score: 85 },
+      { date: new Date(Date.now() - 15 * 24 * 60 * 60 * 1000), score: 88 },
+      { date: new Date(), score: 92 }
+    ],
+    riskFactors: [
+      { factor: 'Data Security', impact: 'high', trend: 'improving' },
+      { factor: 'Compliance', impact: 'medium', trend: 'stable' }
+    ]
+  };
+  
+  res.json({
+    success: true,
+    data: analytics
+  });
+});
+
+// Communication endpoints
+const vendorCommunications = new Map();
+const vendorPortalAccess = new Map();
+
+app.get('/api/vendor-risk/vendors/:id/communications', authenticateToken, (req: AuthenticatedRequest, res: Response) => {
+  const { id } = req.params;
+  
+  let communicationsList = Array.from(vendorCommunications.values());
+  communicationsList = communicationsList.filter(comm => comm.vendorId === id);
+  
+  res.json({
+    success: true,
+    data: communicationsList
+  });
+});
+
+app.post('/api/vendor-risk/vendors/:id/communications', authenticateToken, (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const { id } = req.params;
+    const messageData = req.body;
+    const commId = Date.now().toString();
+    
+    const newCommunication = {
+      id: commId,
+      vendorId: id,
+      ...messageData,
+      sentAt: new Date(),
+      status: 'sent',
+      sentBy: req.user.email
+    };
+    
+    vendorCommunications.set(commId, newCommunication);
+    
+    res.status(201).json({
+      success: true,
+      data: newCommunication
+    });
+  } catch (error) {
+    res.status(400).json({
+      success: false,
+      error: 'Failed to send message'
+    });
+  }
+});
+
+app.get('/api/vendor-risk/vendors/:id/portal-access', authenticateToken, (req: AuthenticatedRequest, res: Response) => {
+  const { id } = req.params;
+  
+  let accessList = Array.from(vendorPortalAccess.values());
+  accessList = accessList.filter(access => access.vendorId === id);
+  
+  res.json({
+    success: true,
+    data: accessList
+  });
+});
+
+app.post('/api/vendor-risk/vendors/:id/portal-access', authenticateToken, (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const { id } = req.params;
+    const { email, role } = req.body;
+    const accessId = Date.now().toString();
+    
+    const newAccess = {
+      id: accessId,
+      vendorId: id,
+      email,
+      role,
+      status: 'invited',
+      invitedAt: new Date(),
+      invitedBy: req.user.email
+    };
+    
+    vendorPortalAccess.set(accessId, newAccess);
+    
+    res.status(201).json({
+      success: true,
+      data: newAccess
+    });
+  } catch (error) {
+    res.status(400).json({
+      success: false,
+      error: 'Failed to invite user'
+    });
+  }
+});
+
+// Automated monitoring endpoints
+app.post('/api/vendor-risk/vendors/:id/schedule-assessment', authenticateToken, (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const { id } = req.params;
+    const { assessmentType, scheduledDate } = req.body;
+    const assessmentId = Date.now().toString();
+    
+    const scheduledAssessment = {
+      id: assessmentId,
+      vendorId: id,
+      assessmentType,
+      status: 'scheduled',
+      scheduledDate: new Date(scheduledDate),
+      scheduledBy: req.user.email,
+      createdAt: new Date(),
+      updatedAt: new Date()
+    };
+    
+    vendorAssessments.set(assessmentId, scheduledAssessment);
+    
+    res.status(201).json({
+      success: true,
+      data: scheduledAssessment
+    });
+  } catch (error) {
+    res.status(400).json({
+      success: false,
+      error: 'Failed to schedule assessment'
+    });
+  }
+});
+
+app.get('/api/vendor-risk/expiring-items', authenticateToken, (req: AuthenticatedRequest, res: Response) => {
+  const now = new Date();
+  const thirtyDaysFromNow = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
+  
+  const expiringDPAs = Array.from(dpas.values()).filter(dpa => 
+    new Date(dpa.expiryDate) <= thirtyDaysFromNow
+  );
+  
+  const expiringCertifications = Array.from(vendorCertifications.values()).filter(cert => 
+    new Date(cert.expiryDate) <= thirtyDaysFromNow
+  );
+  
+  const overdueAssessments = Array.from(vendorAssessments.values()).filter(assessment => {
+    if (assessment.status !== 'scheduled') return false;
+    return new Date(assessment.scheduledDate) < now;
+  });
+  
+  res.json({
+    success: true,
+    data: {
+      dpas: expiringDPAs,
+      certifications: expiringCertifications,
+      assessments: overdueAssessments
+    }
+  });
+});
+
+// Risk scoring rules endpoints
+const riskScoringRules = new Map();
+
+const initializeRiskScoringRules = () => {
+  const sampleRule = {
+    id: '1',
+    name: 'Security Score Weight',
+    category: 'security',
+    weight: 0.4,
+    criteria: [
+      { field: 'encryption', operator: 'equals', value: 'yes', points: 20 },
+      { field: 'certifications', operator: 'contains', value: 'ISO 27001', points: 15 }
+    ],
+    active: true,
+    createdAt: new Date('2024-01-01'),
+    updatedAt: new Date('2024-01-01')
+  };
+  
+  riskScoringRules.set('1', sampleRule);
+};
+
+app.get('/api/vendor-risk/risk-rules', authenticateToken, (req: AuthenticatedRequest, res: Response) => {
+  const rulesList = Array.from(riskScoringRules.values());
+  
+  res.json({
+    success: true,
+    data: rulesList
+  });
+});
+
+app.put('/api/vendor-risk/risk-rules/:id', authenticateToken, (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const { id } = req.params;
+    const updates = req.body;
+    const rule = riskScoringRules.get(id);
+    
+    if (!rule) {
+      return res.status(404).json({
+        success: false,
+        error: 'Risk scoring rule not found'
+      });
+    }
+    
+    const updatedRule = {
+      ...rule,
+      ...updates,
+      updatedAt: new Date()
+    };
+    
+    riskScoringRules.set(id, updatedRule);
+    
+    res.json({
+      success: true,
+      data: updatedRule
+    });
+  } catch (error) {
+    res.status(400).json({
+      success: false,
+      error: 'Failed to update risk scoring rule'
+    });
+  }
+});
+
+// Reporting endpoints
+app.get('/api/vendor-risk/vendors/:id/reports/:type', authenticateToken, (req: AuthenticatedRequest, res: Response) => {
+  const { id, type } = req.params;
+  const vendor = vendors.get(id);
+  
+  if (!vendor) {
+    return res.status(404).json({
+      success: false,
+      error: 'Vendor not found'
+    });
+  }
+  
+  // Simulate report generation
+  const reportData = `Vendor Risk Report - ${vendor.name}\nGenerated: ${new Date().toISOString()}\nReport Type: ${type}`;
+  const blob = Buffer.from(reportData, 'utf8');
+  
+  res.setHeader('Content-Type', 'application/pdf');
+  res.setHeader('Content-Disposition', `attachment; filename="${vendor.name}-${type}-report.pdf"`);
+  res.send(blob);
+});
+
+app.post('/api/vendor-risk/reports/compliance', authenticateToken, (req: AuthenticatedRequest, res: Response) => {
+  const filters = req.body;
+  
+  // Simulate compliance report generation
+  const reportData = `Vendor Compliance Report\nGenerated: ${new Date().toISOString()}\nFilters: ${JSON.stringify(filters)}`;
+  const blob = Buffer.from(reportData, 'utf8');
+  
+  res.setHeader('Content-Type', 'application/pdf');
+  res.setHeader('Content-Disposition', 'attachment; filename="vendor-compliance-report.pdf"');
+  res.send(blob);
+});
+
 app.get('/api/vendor-risk/metrics', authenticateToken, (req: AuthenticatedRequest, res: Response) => {
   const vendorsList = Array.from(vendors.values());
   const assessmentsList = Array.from(vendorAssessments.values());
@@ -3546,6 +4337,9 @@ const startServer = async () => {
     initializePolicyData();
     initializeVendorData();
     initializeBreachData();
+    initializeQuestionnaires();
+    initializeDPAs();
+    initializeRiskScoringRules();
     initializeExternalSystemsData();
     initializeDocumentData();
     initializeAIAgentsData();
