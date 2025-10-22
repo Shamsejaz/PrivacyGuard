@@ -158,7 +158,7 @@ const AnalyticsDashboard: React.FC = () => {
       // Add header
       doc.setFontSize(22);
       doc.setTextColor(0, 51, 153);
-      doc.text('PrivacyGuard AI', pageWidth / 2, 20, { align: 'center' });
+      doc.text('PrivacyComply AI', pageWidth / 2, 20, { align: 'center' });
       
       doc.setFontSize(16);
       doc.setTextColor(0, 0, 0);
@@ -364,11 +364,11 @@ const AnalyticsDashboard: React.FC = () => {
       doc.setFontSize(8);
       doc.setTextColor(150, 150, 150);
       doc.text(footerText, pageWidth / 2, pageHeight - 10, { align: 'center' });
-      doc.text(`PrivacyGuard AI - ${new Date().toLocaleDateString()}`, pageWidth - 14, pageHeight - 10, { align: 'right' });
+      doc.text(`PrivacyComply AI - ${new Date().toLocaleDateString()}`, pageWidth - 14, pageHeight - 10, { align: 'right' });
       doc.text('Page 1', 14, pageHeight - 10);
       
       // Save the PDF
-      doc.save(`PrivacyGuard_${reportType}_Report_${new Date().toISOString().split('T')[0]}.pdf`);
+      doc.save(`PrivacyComply_${reportType}_Report_${new Date().toISOString().split('T')[0]}.pdf`);
     } catch (error) {
       console.error('Error generating PDF:', error);
       alert('Failed to generate PDF report. Please try again.');

@@ -12,7 +12,7 @@ interface ThemeProviderProps {
 export function ThemeProvider({ 
   children, 
   defaultTheme = 'light',
-  storageKey = 'privacyguard-theme'
+  storageKey = 'privacycomply-theme'
 }: ThemeProviderProps) {
   const [theme, setThemeState] = useState<Theme>(() => {
     // Check if we're in a browser environment

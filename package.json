@@ -1,5 +1,5 @@
 {
-  "name": "vite-react-typescript-starter",
+  "name": "privacycomply-platform",
   "private": true,
   "version": "0.0.0",
   "type": "module",
@@ -13,6 +13,7 @@
     "test:ui": "vitest --ui"
   },
   "dependencies": {
+    "@aws-sdk/client-bedrock": "^3.914.0",
     "@aws-sdk/client-bedrock-runtime": "^3.913.0",
     "@aws-sdk/client-cloudwatch": "^3.913.0",
     "@aws-sdk/client-cloudwatch-events": "^3.913.0",

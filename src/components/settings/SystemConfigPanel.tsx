@@ -68,16 +68,16 @@ const SystemConfigPanel: React.FC = () => {
   const [activeSection, setActiveSection] = useState('general');
   const [config, setConfig] = useState<SystemConfig>({
     general: {
-      organizationName: 'PrivacyGuard Enterprise',
+      organizationName: 'PrivacyComply Enterprise',
       timezone: 'UTC',
       dateFormat: 'YYYY-MM-DD',
       language: 'en',
       logoUrl: '',
-      supportEmail: 'support@privacyguard.com',
+      supportEmail: 'support@privacycomply.com',
       supportPhone: '+1-555-0123'
     },
     database: {
-      connectionString: 'postgresql://localhost:5432/privacyguard',
+      connectionString: 'postgresql://localhost:5432/privacycomply',
       maxConnections: 100,
       connectionTimeout: 30,
       queryTimeout: 60,
@@ -91,8 +91,8 @@ const SystemConfigPanel: React.FC = () => {
       smtpPort: 587,
       smtpUser: '',
       smtpPassword: '',
-      fromEmail: 'noreply@privacyguard.com',
-      fromName: 'PrivacyGuard',
+      fromEmail: 'noreply@privacycomply.com',
+      fromName: 'PrivacyComply',
       encryption: 'tls'
     },
     notifications: {

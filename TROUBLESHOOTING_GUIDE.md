@@ -1,6 +1,6 @@
-# PrivacyGuard Troubleshooting Guide
+# PrivacyComply Troubleshooting Guide
 
-This guide provides solutions to common issues encountered when running PrivacyGuard in production.
+This guide provides solutions to common issues encountered when running PrivacyComply in production.
 
 ## Table of Contents
 
@@ -29,7 +29,7 @@ docker stats
 
 # Check network connectivity
 docker network ls
-docker network inspect privacyguard_privacyguard-network
+docker network inspect privacycomply_privacycomply-network
 
 # Health check
 curl -f http://localhost:3001/health
@@ -154,7 +154,7 @@ curl -X POST http://localhost:3001/api/v1/auth/login \
 2. **Database User Issues**
    ```bash
    # Check user table
-   docker-compose exec postgres psql -U privacyguard_user -d privacyguard \
+   docker-compose exec postgres psql -U privacycomply_user -d privacycomply \
      -c "SELECT id, email, role FROM users LIMIT 5;"
    ```
 
@@ -176,15 +176,15 @@ curl -X POST http://localhost:3001/api/v1/auth/login \
 **Diagnostic Steps:**
 ```bash
 # Check PostgreSQL status
-docker-compose exec postgres pg_isready -U privacyguard_user -d privacyguard
+docker-compose exec postgres pg_isready -U privacycomply_user -d privacycomply
 
 # Check connection limits
-docker-compose exec postgres psql -U privacyguard_user -d privacyguard \
+docker-compose exec postgres psql -U privacycomply_user -d privacycomply \
   -c "SELECT count(*) FROM pg_stat_activity;"
 
 # Check database size
-docker-compose exec postgres psql -U privacyguard_user -d privacyguard \
-  -c "SELECT pg_size_pretty(pg_database_size('privacyguard'));"
+docker-compose exec postgres psql -U privacycomply_user -d privacycomply \
+  -c "SELECT pg_size_pretty(pg_database_size('privacycomply'));"
 ```
 
 **Solutions:**
@@ -204,14 +204,14 @@ docker-compose exec postgres psql -U privacyguard_user -d privacyguard \
    df -h
    
    # Clean up old WAL files
-   docker-compose exec postgres psql -U privacyguard_user -d privacyguard \
+   docker-compose exec postgres psql -U privacycomply_user -d privacycomply \
      -c "SELECT pg_switch_wal();"
    ```
 
 3. **Performance Issues**
    ```bash
    # Check slow queries
-   docker-compose exec postgres psql -U privacyguard_user -d privacyguard \
+   docker-compose exec postgres psql -U privacycomply_user -d privacycomply \
      -c "SELECT query, mean_time, calls FROM pg_stat_statements ORDER BY mean_time DESC LIMIT 10;"
    ```
 
@@ -320,7 +320,7 @@ docker-compose logs backend | grep -i "slow query"
    docker-compose exec backend npm run db:optimize
    
    # Analyze query performance
-   docker-compose exec postgres psql -U privacyguard_user -d privacyguard \
+   docker-compose exec postgres psql -U privacycomply_user -d privacycomply \
      -c "EXPLAIN ANALYZE SELECT * FROM users WHERE email = 'test@example.com';"
    ```
 
@@ -503,7 +503,7 @@ docker-compose exec redis redis-cli keys "rate_limit:*"
 ```bash
 # Check Docker network
 docker network ls
-docker network inspect privacyguard_privacyguard-network
+docker network inspect privacycomply_privacycomply-network
 
 # Test service connectivity
 docker-compose exec backend ping postgres
@@ -626,7 +626,7 @@ docker-compose exec backend npm run migrate:status
 docker-compose logs backend | grep -i migration
 
 # Verify database schema
-docker-compose exec postgres psql -U privacyguard_user -d privacyguard \
+docker-compose exec postgres psql -U privacycomply_user -d privacycomply \
   -c "\dt"  # List tables
 ```
 
@@ -743,7 +743,7 @@ curl -f http://localhost:3001/health
 docker-compose stop backend frontend nginx
 
 # 2. Restore database from backup
-docker-compose exec postgres psql -U privacyguard_user -d privacyguard < backup.sql
+docker-compose exec postgres psql -U privacycomply_user -d privacycomply < backup.sql
 
 # 3. Restart services
 docker-compose start backend frontend nginx

@@ -49,7 +49,7 @@ export const TenantProvider: React.FC<TenantProviderProps> = ({ children }) => {
         setError(null);
 
         // Check for saved tenant in localStorage
-        const savedTenantId = localStorage.getItem('privacyguard_current_tenant');
+        const savedTenantId = localStorage.getItem('privacycomply_current_tenant');
         
         // Mock data for development - in production this would come from API
         const mockTenants: Tenant[] = [
@@ -228,7 +228,7 @@ export const TenantProvider: React.FC<TenantProviderProps> = ({ children }) => {
         }
 
         setCurrentTenant(tenant);
-        localStorage.setItem('privacyguard_current_tenant', tenant.id);
+        localStorage.setItem('privacycomply_current_tenant', tenant.id);
 
         // Load tenant-specific data
         await loadTenantData(tenant.id);
@@ -299,7 +299,7 @@ export const TenantProvider: React.FC<TenantProviderProps> = ({ children }) => {
       }
 
       setCurrentTenant(tenant);
-      localStorage.setItem('privacyguard_current_tenant', tenantId);
+      localStorage.setItem('privacycomply_current_tenant', tenantId);
 
       // Load tenant-specific data
       await loadTenantData(tenantId);
@@ -409,7 +409,7 @@ export const TenantProvider: React.FC<TenantProviderProps> = ({ children }) => {
           await switchTenant(remainingTenants[0].id);
         } else {
           setCurrentTenant(null);
-          localStorage.removeItem('privacyguard_current_tenant');
+          localStorage.removeItem('privacycomply_current_tenant');
         }
       }
 

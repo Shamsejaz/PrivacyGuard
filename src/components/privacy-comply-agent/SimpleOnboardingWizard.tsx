@@ -119,11 +119,23 @@ export const SimpleOnboardingWizard: React.FC<SimpleOnboardingWizardProps> = ({
   };
 
   const handleFullValidation = async () => {
-    const results = await runFullValidation(configuration);
-    const hasErrors = results.some(r => r.status === 'error');
-    
-    if (!hasErrors) {
-      await handleComplete();
+    try {
+      // First save the configuration
+      await saveConfiguration(configuration);
+      
+      // Then run full validation and deployment
+      const results = await runFullValidation(configuration);
+      const hasErrors = results.some(r => r.status === 'error');
+      
+      if (!hasErrors) {
+        // If successful, complete the setup
+        onComplete();
+      } else {
+        // If there are errors, they will be displayed in the validation results
+        console.log('Validation completed with errors:', results.filter(r => r.status === 'error'));
+      }
+    } catch (error) {
+      console.error('Full validation failed:', error);
     }
   };
 

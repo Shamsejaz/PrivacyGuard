@@ -1,6 +1,6 @@
-# PrivacyGuard Product Overview
+# PrivacyComply Product Overview
 
-PrivacyGuard is an enterprise PrivacyOps platform that provides comprehensive data privacy management capabilities. The platform helps organizations comply with privacy regulations like GDPR, CCPA, HIPAA, and PDPL through automated tools and workflows.
+PrivacyComply is an enterprise PrivacyOps platform that provides comprehensive data privacy management capabilities. The platform helps organizations comply with privacy regulations like GDPR, CCPA, HIPAA, and PDPL through automated tools and workflows.
 
 ## Core Features
 

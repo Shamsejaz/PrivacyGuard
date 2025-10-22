@@ -25,7 +25,7 @@ const RecordsOfProcessing: React.FC = () => {
     {
       id: '1',
       activityName: 'Customer Registration and Account Management',
-      controller: 'PrivacyGuard Ltd.',
+      controller: 'PrivacyComply Ltd.',
       processor: 'Cloud Services Provider',
       purposes: ['Account creation', 'Service provision', 'Customer support'],
       lawfulBasis: 'Contract (Article 6(1)(b))',
@@ -41,7 +41,7 @@ const RecordsOfProcessing: React.FC = () => {
     {
       id: '2',
       activityName: 'Marketing Communications',
-      controller: 'PrivacyGuard Ltd.',
+      controller: 'PrivacyComply Ltd.',
       purposes: ['Newsletter distribution', 'Product updates', 'Promotional campaigns'],
       lawfulBasis: 'Consent (Article 6(1)(a))',
       dataCategories: ['Name', 'Email', 'Communication preferences'],
@@ -56,7 +56,7 @@ const RecordsOfProcessing: React.FC = () => {
     {
       id: '3',
       activityName: 'Employee Data Management',
-      controller: 'PrivacyGuard Ltd.',
+      controller: 'PrivacyComply Ltd.',
       purposes: ['HR management', 'Payroll processing', 'Performance evaluation'],
       lawfulBasis: 'Contract (Article 6(1)(b)) / Legal obligation (Article 6(1)(c))',
       dataCategories: ['Personal details', 'Employment history', 'Salary information', 'Performance data'],

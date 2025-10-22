@@ -118,7 +118,7 @@ export class OnboardingService {
   async validateAWSService(
     serviceName: string, 
     config: any, 
-    credentials: OnboardingConfiguration['aws']['credentials']
+    _credentials: OnboardingConfiguration['aws']['credentials']
   ): Promise<ValidationResult> {
     try {
       // Simulate service-specific validation
@@ -246,27 +246,56 @@ export class OnboardingService {
     const results: ValidationResult[] = [];
 
     try {
-      // Deploy S3 buckets
+      // Validate prerequisites first
+      const credentialsResult = await this.validateAWSCredentials(config.aws.credentials);
+      if (credentialsResult.status === 'error') {
+        results.push({
+          service: 'infrastructure-deployment',
+          status: 'error',
+          message: 'Cannot deploy infrastructure: Invalid AWS credentials'
+        });
+        return results;
+      }
+
+      // Check required configurations
+      if (!config.aws.services.s3.reportsBucket) {
+        results.push({
+          service: 'infrastructure-deployment',
+          status: 'error',
+          message: 'Cannot deploy infrastructure: S3 reports bucket name is required'
+        });
+        return results;
+      }
+
+      if (!config.aws.services.lambda.executionRole) {
+        results.push({
+          service: 'infrastructure-deployment',
+          status: 'error',
+          message: 'Cannot deploy infrastructure: Lambda execution role ARN is required'
+        });
+        return results;
+      }
+
+      // Simulate infrastructure deployment with proper validation
+      await new Promise(resolve => setTimeout(resolve, 1000));
       results.push({
         service: 's3-deployment',
         status: 'success',
-        message: 'S3 buckets created successfully'
+        message: `S3 bucket '${config.aws.services.s3.reportsBucket}' configured successfully`
       });
 
-      // Deploy DynamoDB tables
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      await new Promise(resolve => setTimeout(resolve, 1500));
       results.push({
         service: 'dynamodb-deployment',
         status: 'success',
-        message: 'DynamoDB tables created successfully'
+        message: `DynamoDB tables with prefix '${config.aws.services.dynamodb.tablePrefix}' configured successfully`
       });
 
-      // Deploy IAM roles
       await new Promise(resolve => setTimeout(resolve, 1000));
       results.push({
         service: 'iam-deployment',
         status: 'success',
-        message: 'IAM roles and policies created successfully'
+        message: 'IAM roles and policies validated successfully'
       });
 
       return results;
@@ -287,18 +316,39 @@ export class OnboardingService {
     const results: ValidationResult[] = [];
 
     try {
+      // Validate execution role first
+      if (!config.aws.services.lambda.executionRole) {
+        results.push({
+          service: 'lambda-deployment',
+          status: 'error',
+          message: 'Lambda execution role ARN is required for function deployment'
+        });
+        return results;
+      }
+
+      // Validate execution role format
+      const roleArnPattern = /^arn:aws:iam::\d{12}:role\/.+$/;
+      if (!roleArnPattern.test(config.aws.services.lambda.executionRole)) {
+        results.push({
+          service: 'lambda-deployment',
+          status: 'error',
+          message: 'Invalid Lambda execution role ARN format. Expected: arn:aws:iam::123456789012:role/role-name'
+        });
+        return results;
+      }
+
       const functions = [
-        's3-access-restriction',
-        'encryption-enablement',
-        'iam-policy-adjustment'
+        { name: 's3-access-restriction', description: 'S3 access restriction automation' },
+        { name: 'encryption-enablement', description: 'Encryption enablement automation' },
+        { name: 'iam-policy-adjustment', description: 'IAM policy adjustment automation' }
       ];
 
-      for (const functionName of functions) {
-        await new Promise(resolve => setTimeout(resolve, 1000));
+      for (const func of functions) {
+        await new Promise(resolve => setTimeout(resolve, 800));
         results.push({
-          service: `lambda-${functionName}`,
+          service: `lambda-${func.name}`,
           status: 'success',
-          message: `Lambda function ${functionName} deployed successfully`
+          message: `Lambda function ${func.name} configured successfully - ${func.description}`
         });
       }
 
@@ -314,28 +364,75 @@ export class OnboardingService {
   }
 
   /**
-   * Run comprehensive validation
+   * Run comprehensive validation and deployment
    */
   async runFullValidation(config: OnboardingConfiguration): Promise<ValidationResult[]> {
     const results: ValidationResult[] = [];
 
-    // Validate AWS credentials
-    const credentialsResult = await this.validateAWSCredentials(config.aws.credentials);
-    results.push(credentialsResult);
+    try {
+      // Step 1: Validate AWS credentials
+      const credentialsResult = await this.validateAWSCredentials(config.aws.credentials);
+      results.push(credentialsResult);
 
-    if (credentialsResult.status === 'error') {
-      return results; // Stop if credentials are invalid
+      if (credentialsResult.status === 'error') {
+        return results; // Stop if credentials are invalid
+      }
+
+      // Step 2: Validate each service configuration
+      const services = Object.keys(config.aws.services);
+      for (const serviceName of services) {
+        const serviceConfig = config.aws.services[serviceName as keyof typeof config.aws.services];
+        const result = await this.validateAWSService(serviceName, serviceConfig, config.aws.credentials);
+        results.push(result);
+      }
+
+      // Step 3: Check for critical errors before deployment
+      const criticalErrors = results.filter(r => r.status === 'error');
+      if (criticalErrors.length > 0) {
+        results.push({
+          service: 'deployment-validation',
+          status: 'error',
+          message: `Cannot proceed with deployment: ${criticalErrors.length} critical error(s) found`
+        });
+        return results;
+      }
+
+      // Step 4: Deploy infrastructure
+      const infrastructureResults = await this.deployInfrastructure(config);
+      results.push(...infrastructureResults);
+
+      // Step 5: Deploy Lambda functions (only if infrastructure deployment succeeded)
+      const infrastructureErrors = infrastructureResults.filter(r => r.status === 'error');
+      if (infrastructureErrors.length === 0) {
+        const lambdaResults = await this.deployLambdaFunctions(config);
+        results.push(...lambdaResults);
+      } else {
+        results.push({
+          service: 'lambda-deployment',
+          status: 'error',
+          message: 'Skipped Lambda deployment due to infrastructure errors'
+        });
+      }
+
+      // Step 6: Final validation
+      const finalErrors = results.filter(r => r.status === 'error');
+      if (finalErrors.length === 0) {
+        results.push({
+          service: 'deployment-complete',
+          status: 'success',
+          message: 'AWS PrivacyComply Agent deployment completed successfully'
+        });
+      }
+
+      return results;
+    } catch (error) {
+      results.push({
+        service: 'validation-error',
+        status: 'error',
+        message: error instanceof Error ? error.message : 'Validation process failed'
+      });
+      return results;
     }
-
-    // Validate each service
-    const services = Object.keys(config.aws.services);
-    for (const serviceName of services) {
-      const serviceConfig = config.aws.services[serviceName as keyof typeof config.aws.services];
-      const result = await this.validateAWSService(serviceName, serviceConfig, config.aws.credentials);
-      results.push(result);
-    }
-
-    return results;
   }
 
   /**
@@ -384,24 +481,49 @@ export class OnboardingService {
           awsConfigured: false,
           servicesEnabled: false,
           validationPassed: false,
-          setupErrors: ['No configuration found']
+          setupErrors: ['Configuration not found - please complete the setup wizard']
         };
       }
 
-      // Run validation to check current status
-      const validationResults = await this.runFullValidation(config);
-      const errors = validationResults
+      // Check basic configuration completeness
+      const awsConfigured = !!(config.aws.credentials.accessKeyId && config.aws.credentials.secretAccessKey);
+      const servicesConfigured = !!(config.aws.services.s3.reportsBucket && config.aws.services.lambda.executionRole);
+      
+      if (!awsConfigured || !servicesConfigured) {
+        const errors = [];
+        if (!awsConfigured) errors.push('AWS credentials not configured');
+        if (!config.aws.services.s3.reportsBucket) errors.push('S3 reports bucket not specified');
+        if (!config.aws.services.lambda.executionRole) errors.push('Lambda execution role not specified');
+        
+        return {
+          isSetupComplete: false,
+          setupProgress: awsConfigured ? 50 : 25,
+          awsConfigured,
+          servicesEnabled: servicesConfigured,
+          validationPassed: false,
+          setupErrors: errors
+        };
+      }
+
+      // Run basic validation (not full deployment) for status check
+      const basicValidation = [
+        await this.validateAWSCredentials(config.aws.credentials),
+        await this.validateAWSService('s3', config.aws.services.s3, config.aws.credentials),
+        await this.validateAWSService('lambda', config.aws.services.lambda, config.aws.credentials)
+      ];
+
+      const errors = basicValidation
         .filter(r => r.status === 'error')
         .map(r => r.message);
       
-      const successCount = validationResults.filter(r => r.status === 'success').length;
-      const progress = (successCount / validationResults.length) * 100;
+      const successCount = basicValidation.filter(r => r.status === 'success').length;
+      const progress = Math.min((successCount / basicValidation.length) * 100, 95); // Cap at 95% until full deployment
 
       return {
         isSetupComplete: errors.length === 0,
         setupProgress: progress,
-        awsConfigured: config.aws.credentials.accessKeyId !== '',
-        servicesEnabled: Object.values(config.aws.services).some((s: any) => s.enabled !== undefined ? s.enabled : true),
+        awsConfigured: true,
+        servicesEnabled: true,
         validationPassed: errors.length === 0,
         lastSetupAttempt: new Date().toISOString(),
         setupErrors: errors
@@ -413,7 +535,7 @@ export class OnboardingService {
         awsConfigured: false,
         servicesEnabled: false,
         validationPassed: false,
-        setupErrors: ['Failed to check setup status']
+        setupErrors: [error instanceof Error ? error.message : 'Failed to check setup status']
       };
     }
   }

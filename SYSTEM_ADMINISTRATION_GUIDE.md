@@ -1,6 +1,6 @@
-# PrivacyGuard System Administration Guide
+# PrivacyComply System Administration Guide
 
-This comprehensive guide provides system administrators with detailed procedures for managing, maintaining, and troubleshooting the PrivacyGuard platform in production environments.
+This comprehensive guide provides system administrators with detailed procedures for managing, maintaining, and troubleshooting the PrivacyComply platform in production environments.
 
 ## Table of Contents
 
@@ -72,20 +72,20 @@ openssl version          # >= 1.1.1
 
 ```bash
 # Create dedicated system user
-sudo useradd -m -s /bin/bash privacyguard
-sudo usermod -aG docker privacyguard
+sudo useradd -m -s /bin/bash privacycomply
+sudo usermod -aG docker privacycomply
 
 # Set up directory structure
-sudo mkdir -p /opt/privacyguard
-sudo chown privacyguard:privacyguard /opt/privacyguard
+sudo mkdir -p /opt/privacycomply
+sudo chown privacycomply:privacycomply /opt/privacycomply
 ```
 
 #### 2. Repository Setup
 
 ```bash
 # Clone repository
-cd /opt/privacyguard
-git clone https://github.com/your-org/privacyguard.git .
+cd /opt/privacycomply
+git clone https://github.com/your-org/privacycomply.git .
 
 # Set proper permissions
 chmod +x scripts/*.sh
@@ -112,9 +112,9 @@ nano .env.production
 sudo certbot certonly --standalone -d your-domain.com
 
 # Copy certificates
-sudo cp /etc/letsencrypt/live/your-domain.com/fullchain.pem nginx/ssl/privacyguard.crt
-sudo cp /etc/letsencrypt/live/your-domain.com/privkey.pem nginx/ssl/privacyguard.key
-sudo chown privacyguard:privacyguard nginx/ssl/*
+sudo cp /etc/letsencrypt/live/your-domain.com/fullchain.pem nginx/ssl/privacycomply.crt
+sudo cp /etc/letsencrypt/live/your-domain.com/privkey.pem nginx/ssl/privacycomply.key
+sudo chown privacycomply:privacycomply nginx/ssl/*
 ```
 
 #### 5. Initial Deployment
@@ -215,7 +215,7 @@ nano nginx/nginx.conf
 
 ```bash
 # Check active connections
-docker-compose exec postgres psql -U privacyguard_user -d privacyguard -c "
+docker-compose exec postgres psql -U privacycomply_user -d privacycomply -c "
   SELECT count(*) as active_connections, 
          max_conn, 
          max_conn-count(*) as available_connections 
@@ -223,7 +223,7 @@ docker-compose exec postgres psql -U privacyguard_user -d privacyguard -c "
        (SELECT setting::int as max_conn FROM pg_settings WHERE name='max_connections') mc;"
 
 # Kill long-running queries
-docker-compose exec postgres psql -U privacyguard_user -d privacyguard -c "
+docker-compose exec postgres psql -U privacycomply_user -d privacycomply -c "
   SELECT pg_terminate_backend(pid) 
   FROM pg_stat_activity 
   WHERE state = 'active' 
@@ -235,14 +235,14 @@ docker-compose exec postgres psql -U privacyguard_user -d privacyguard -c "
 
 ```bash
 # Check slow queries
-docker-compose exec postgres psql -U privacyguard_user -d privacyguard -c "
+docker-compose exec postgres psql -U privacycomply_user -d privacycomply -c "
   SELECT query, mean_time, calls, total_time
   FROM pg_stat_statements 
   ORDER BY mean_time DESC 
   LIMIT 10;"
 
 # Check table sizes
-docker-compose exec postgres psql -U privacyguard_user -d privacyguard -c "
+docker-compose exec postgres psql -U privacycomply_user -d privacycomply -c "
   SELECT schemaname, tablename, 
          pg_size_pretty(pg_total_relation_size(schemaname||'.'||tablename)) as size
   FROM pg_tables 
@@ -254,12 +254,12 @@ docker-compose exec postgres psql -U privacyguard_user -d privacyguard -c "
 
 ```bash
 # Weekly maintenance
-docker-compose exec postgres psql -U privacyguard_user -d privacyguard -c "
+docker-compose exec postgres psql -U privacycomply_user -d privacycomply -c "
   VACUUM ANALYZE;
-  REINDEX DATABASE privacyguard;"
+  REINDEX DATABASE privacycomply;"
 
 # Update statistics
-docker-compose exec postgres psql -U privacyguard_user -d privacyguard -c "
+docker-compose exec postgres psql -U privacycomply_user -d privacycomply -c "
   ANALYZE;"
 ```
 
@@ -447,7 +447,7 @@ docker-compose logs nginx | awk '{print $1}' | sort | uniq -c | sort -nr | head 
 
 ```bash
 # Check certificate expiration
-openssl x509 -in nginx/ssl/privacyguard.crt -noout -dates
+openssl x509 -in nginx/ssl/privacycomply.crt -noout -dates
 
 # Renew Let's Encrypt certificates
 sudo certbot renew --dry-run
@@ -478,7 +478,7 @@ sudo lynis audit system
 ```bash
 # Scan for vulnerabilities
 docker run --rm -v /var/run/docker.sock:/var/run/docker.sock \
-  aquasec/trivy image privacyguard-backend:latest
+  aquasec/trivy image privacycomply-backend:latest
 
 # Check dependency vulnerabilities
 docker-compose exec backend npm audit
@@ -499,7 +499,7 @@ watch -n 5 'docker stats --no-stream'
 
 # Check disk usage
 df -h
-du -sh /opt/privacyguard/*
+du -sh /opt/privacycomply/*
 
 # Monitor network connections
 netstat -tulpn | grep -E ":80|:443|:3001|:5432|:27017|:6379"
@@ -512,7 +512,7 @@ netstat -tulpn | grep -E ":80|:443|:3001|:5432|:27017|:6379"
 curl -w "@curl-format.txt" -o /dev/null -s http://localhost:3001/health
 
 # Database query performance
-docker-compose exec postgres psql -U privacyguard_user -d privacyguard -c "
+docker-compose exec postgres psql -U privacycomply_user -d privacycomply -c "
   SELECT query, mean_time, calls 
   FROM pg_stat_statements 
   WHERE mean_time > 1000 
@@ -561,9 +561,9 @@ REDIS_MAX_CONNECTIONS=10
 sudo crontab -e
 
 # Add backup jobs:
-0 2 * * * /opt/privacyguard/scripts/backup.sh daily
-0 2 * * 0 /opt/privacyguard/scripts/backup.sh weekly
-0 2 1 * * /opt/privacyguard/scripts/backup.sh monthly
+0 2 * * * /opt/privacycomply/scripts/backup.sh daily
+0 2 * * 0 /opt/privacycomply/scripts/backup.sh weekly
+0 2 1 * * /opt/privacycomply/scripts/backup.sh monthly
 ```
 
 #### Manual Backup Operations
@@ -658,17 +658,17 @@ logging:
 
 ```bash
 # Configure logrotate
-sudo nano /etc/logrotate.d/privacyguard
+sudo nano /etc/logrotate.d/privacycomply
 
 # Content:
-/opt/privacyguard/logs/*.log {
+/opt/privacycomply/logs/*.log {
     daily
     rotate 30
     compress
     delaycompress
     missingok
     notifempty
-    create 644 privacyguard privacyguard
+    create 644 privacycomply privacycomply
     postrotate
         docker-compose restart backend
     endscript
@@ -710,7 +710,7 @@ docker-compose logs backend | grep "slow query" | tail -10
 
 ```bash
 #!/bin/bash
-# /opt/privacyguard/scripts/daily-maintenance.sh
+# /opt/privacycomply/scripts/daily-maintenance.sh
 
 # Health checks
 ./scripts/health-check.sh
@@ -732,10 +732,10 @@ docker-compose logs backend | grep "slow query" | tail -10
 
 ```bash
 #!/bin/bash
-# /opt/privacyguard/scripts/weekly-maintenance.sh
+# /opt/privacycomply/scripts/weekly-maintenance.sh
 
 # Database maintenance
-docker-compose exec postgres psql -U privacyguard_user -d privacyguard -c "VACUUM ANALYZE;"
+docker-compose exec postgres psql -U privacycomply_user -d privacycomply -c "VACUUM ANALYZE;"
 docker-compose exec mongodb mongosh --eval "db.runCommand({compact: 'policy_documents'})"
 
 # Update system packages
@@ -755,7 +755,7 @@ sudo certbot renew --quiet
 
 ```bash
 #!/bin/bash
-# /opt/privacyguard/scripts/monthly-maintenance.sh
+# /opt/privacycomply/scripts/monthly-maintenance.sh
 
 # Full security audit
 ./scripts/security-audit.sh
@@ -848,7 +848,7 @@ docker-compose exec backend npm run db:test
 docker-compose ps postgres mongodb redis
 
 # 2. Check network connectivity
-docker network inspect privacyguard_privacyguard-network
+docker network inspect privacycomply_privacycomply-network
 
 # 3. Verify credentials
 grep -E "POSTGRES_|MONGODB_|REDIS_" .env.production
@@ -872,7 +872,7 @@ free -h
 df -h
 
 # 2. Optimize database queries
-docker-compose exec postgres psql -U privacyguard_user -d privacyguard -c "
+docker-compose exec postgres psql -U privacycomply_user -d privacycomply -c "
   SELECT query, mean_time FROM pg_stat_statements ORDER BY mean_time DESC LIMIT 5;"
 
 # 3. Clear cache

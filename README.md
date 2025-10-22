@@ -1,8 +1,8 @@
-# 🛡️ PrivacyGuard - Enterprise PrivacyOps Platform
+# 🛡️ PrivacyComply - Enterprise PrivacyOps Platform
 
 <div align="center">
 
-![PrivacyGuard Logo](https://via.placeholder.com/200x80/4A90E2/FFFFFF?text=PrivacyGuard)
+![PrivacyComply Logo](https://via.placeholder.com/200x80/4A90E2/FFFFFF?text=PrivacyComply)
 
 **AI-Powered Privacy Compliance Management Platform**
 
@@ -38,7 +38,7 @@
 
 ## 🌟 Overview
 
-PrivacyGuard is a comprehensive, enterprise-grade PrivacyOps platform that leverages AI to automate privacy compliance management. Built with modern technologies and designed for scalability, it helps organizations manage GDPR, CCPA, HIPAA, and PDPL compliance requirements through intelligent automation and real-time monitoring.
+PrivacyComply is a comprehensive, enterprise-grade PrivacyOps platform that leverages AI to automate privacy compliance management. Built with modern technologies and designed for scalability, it helps organizations manage GDPR, CCPA, HIPAA, and PDPL compliance requirements through intelligent automation and real-time monitoring.
 
 ### 🎯 Target Users
 - **Privacy Officers & DPOs**: Comprehensive compliance management
@@ -143,8 +143,8 @@ Get up and running in 5 minutes:
 
 ```bash
 # Clone the repository
-git clone https://github.com/privacyguard/privacyguard.git
-cd privacyguard
+git clone https://github.com/PrivacyComply/PrivacyComply.git
+cd PrivacyComply
 
 # Start with Docker Compose
 docker-compose -f docker-compose.local.yml up --build
@@ -161,7 +161,7 @@ chmod +x deploy-local.sh
 - Database UI: http://localhost:8080
 
 **👤 Default Login:**
-- Email: `admin@privacyguard.local`
+- Email: `admin@PrivacyComply.local`
 - Password: `admin123`
 
 ### ☁️ **AWS Deployment**
@@ -222,8 +222,8 @@ Access development tools:
 docker-compose -f docker-compose.local.yml --profile tools up -d
 
 # Individual tool access
-docker-compose -f docker-compose.local.yml exec postgres psql -U privacyguard_user
-docker-compose -f docker-compose.local.yml exec mongodb mongosh privacyguard_local
+docker-compose -f docker-compose.local.yml exec postgres psql -U PrivacyComply_user
+docker-compose -f docker-compose.local.yml exec mongodb mongosh PrivacyComply_local
 docker-compose -f docker-compose.local.yml exec redis redis-cli
 ```
 
@@ -364,7 +364,7 @@ Create `.env` files for each service:
 VITE_API_BASE_URL=http://localhost:3001
 VITE_WS_URL=ws://localhost:3001
 VITE_PYTHON_PII_ENDPOINT=http://localhost:8000
-VITE_APP_NAME=PrivacyGuard
+VITE_APP_NAME=PrivacyComply
 VITE_APP_VERSION=1.0.0
 ```
 
@@ -372,8 +372,8 @@ VITE_APP_VERSION=1.0.0
 ```bash
 NODE_ENV=development
 PORT=3001
-DATABASE_URL=postgresql://user:password@localhost:5432/privacyguard
-MONGODB_URI=mongodb://localhost:27017/privacyguard
+DATABASE_URL=postgresql://user:password@localhost:5432/PrivacyComply
+MONGODB_URI=mongodb://localhost:27017/PrivacyComply
 REDIS_URL=redis://localhost:6379
 JWT_SECRET=your-super-secret-jwt-key
 BCRYPT_ROUNDS=12
@@ -385,8 +385,8 @@ AWS_REGION=us-east-1
 AWS_ACCESS_KEY_ID=your-access-key
 AWS_SECRET_ACCESS_KEY=your-secret-key
 BEDROCK_MODEL_ID=anthropic.claude-3-sonnet-20240229-v1:0
-S3_REPORTS_BUCKET=privacyguard-reports
-DYNAMODB_TABLE_NAME=privacyguard-compliance-findings
+S3_REPORTS_BUCKET=PrivacyComply-reports
+DYNAMODB_TABLE_NAME=PrivacyComply-compliance-findings
 ```
 
 ### 🗄️ **Database Configuration**
@@ -394,9 +394,9 @@ DYNAMODB_TABLE_NAME=privacyguard-compliance-findings
 **PostgreSQL Setup:**
 ```sql
 -- Create database and user
-CREATE DATABASE privacyguard;
-CREATE USER privacyguard_user WITH PASSWORD 'your_password';
-GRANT ALL PRIVILEGES ON DATABASE privacyguard TO privacyguard_user;
+CREATE DATABASE PrivacyComply;
+CREATE USER PrivacyComply_user WITH PASSWORD 'your_password';
+GRANT ALL PRIVILEGES ON DATABASE PrivacyComply TO PrivacyComply_user;
 
 -- Run migrations
 npm run migrate
@@ -405,7 +405,7 @@ npm run migrate
 **MongoDB Setup:**
 ```javascript
 // Create collections and indexes
-use privacyguard;
+use PrivacyComply;
 db.createCollection('users');
 db.createCollection('complianceFindings');
 db.createCollection('dsarRequests');
@@ -496,7 +496,7 @@ node tests/performance/bedrock-performance.js
 ## 🤖 AI Agent
 
 ### 🧠 **Claude 3 Sonnet Integration**
-PrivacyGuard leverages Amazon Bedrock with Claude 3 Sonnet for advanced compliance reasoning:
+PrivacyComply leverages Amazon Bedrock with Claude 3 Sonnet for advanced compliance reasoning:
 
 ```javascript
 // Example: AI-powered compliance analysis
@@ -593,8 +593,8 @@ We welcome contributions from the community! Here's how to get started:
 
 1. **Fork the repository**
    ```bash
-   git clone https://github.com/your-username/privacyguard.git
-   cd privacyguard
+   git clone https://github.com/your-username/PrivacyComply.git
+   cd PrivacyComply
    ```
 
 2. **Set up development environment**
@@ -640,10 +640,10 @@ Have an idea? We'd love to hear it! Please include:
 ### 🆘 **Getting Help**
 | Type | Contact | Response Time |
 |------|---------|---------------|
-| 🐛 **Bug Reports** | [GitHub Issues](https://github.com/privacyguard/privacyguard/issues) | 24-48 hours |
-| 💬 **General Questions** | [Discussions](https://github.com/privacyguard/privacyguard/discussions) | 1-3 days |
-| 🔒 **Security Issues** | security@privacyguard.com | 4-8 hours |
-| 🏢 **Enterprise Support** | enterprise@privacyguard.com | 2-4 hours |
+| 🐛 **Bug Reports** | [GitHub Issues](https://github.com/PrivacyComply/PrivacyComply/issues) | 24-48 hours |
+| 💬 **General Questions** | [Discussions](https://github.com/PrivacyComply/PrivacyComply/discussions) | 1-3 days |
+| 🔒 **Security Issues** | security@PrivacyComply.com | 4-8 hours |
+| 🏢 **Enterprise Support** | enterprise@PrivacyComply.com | 2-4 hours |
 
 ### 📚 **Additional Resources**
 - **📖 Wiki**: Comprehensive guides and tutorials
@@ -666,8 +666,8 @@ This project is licensed under the **MIT License** - see the [LICENSE](LICENSE) 
 
 <div align="center">
 
-**Made with ❤️ by the PrivacyGuard Team**
+**Made with ❤️ by the PrivacyComply Team**
 
-[🌟 Star us on GitHub](https://github.com/privacyguard/privacyguard) • [🐦 Follow on Twitter](https://twitter.com/privacyguard) • [💼 LinkedIn](https://linkedin.com/company/privacyguard)
+[🌟 Star us on GitHub](https://github.com/PrivacyComply/PrivacyComply) • [🐦 Follow on Twitter](https://twitter.com/PrivacyComply) • [💼 LinkedIn](https://linkedin.com/company/PrivacyComply)
 
 </div>

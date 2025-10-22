@@ -92,7 +92,7 @@ const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab }) => {
         <div className="flex items-center space-x-2 mb-8">
           <Shield className="h-8 w-8 text-blue-600" />
           <div>
-            <h1 className="text-xl font-bold text-gray-900">PrivacyGuard</h1>
+            <h1 className="text-xl font-bold text-gray-900">PrivacyComply</h1>
             <p className="text-xs text-gray-500">AI-Powered Compliance</p>
           </div>
         </div>

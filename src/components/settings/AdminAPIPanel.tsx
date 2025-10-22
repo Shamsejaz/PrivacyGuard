@@ -39,7 +39,7 @@ interface APIConfiguration {
 const AdminAPIPanel: React.FC = () => {
   const [config, setConfig] = useState<APIConfiguration>({
     endpoints: {
-      baseUrl: 'https://api.privacyguard.com',
+      baseUrl: 'https://api.privacycomply.com',
       timeout: 30000,
       retries: 3,
       rateLimit: 1000
@@ -203,7 +203,7 @@ const AdminAPIPanel: React.FC = () => {
                         value={config.endpoints.baseUrl}
                         onChange={(e) => updateConfig('endpoints.baseUrl', e.target.value)}
                         className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        placeholder="https://api.privacyguard.com"
+                        placeholder="https://api.privacycomply.com"
                       />
                     </div>
                     

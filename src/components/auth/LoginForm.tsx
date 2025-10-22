@@ -6,7 +6,7 @@ import MFAVerification from './MFAVerification';
 
 const LoginForm: React.FC = () => {
   const { login, loginWithMFA, loading, requiresMFA, mfaMethods, sessionId } = useAuth();
-  const [email, setEmail] = useState('admin@privacyguard.com');
+  const [email, setEmail] = useState('admin@privacycomply.com');
   const [password, setPassword] = useState('Admin123!@#');
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
@@ -60,7 +60,7 @@ const LoginForm: React.FC = () => {
           <div className="flex justify-center mb-4">
             <Shield className="h-12 w-12 text-blue-600" />
           </div>
-          <h1 className="text-2xl font-bold text-gray-900">PrivacyGuard AI</h1>
+          <h1 className="text-2xl font-bold text-gray-900">PrivacyComply AI</h1>
           <p className="text-gray-600 mt-2">Enterprise Privacy Compliance Platform</p>
         </div>
 
@@ -180,13 +180,13 @@ const LoginForm: React.FC = () => {
           </p>
           <div className="text-sm text-gray-800 text-center mt-1 space-y-1">
             <p>
-              <strong>Admin:</strong> admin@privacyguard.com / Admin123!@#
+              <strong>Admin:</strong> admin@privacycomply.com / Admin123!@#
             </p>
             <p>
-              <strong>DPO:</strong> dpo@privacyguard.com / DPO123!@#
+              <strong>DPO:</strong> dpo@privacycomply.com / DPO123!@#
             </p>
             <p>
-              <strong>Compliance:</strong> compliance@privacyguard.com / Compliance123!@#
+              <strong>Compliance:</strong> compliance@privacycomply.com / Compliance123!@#
             </p>
           </div>
         </div>

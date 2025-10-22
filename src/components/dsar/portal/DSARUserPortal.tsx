@@ -81,8 +81,8 @@ const translations: Translations = {
   hipaaInformation: { en: 'HIPAA Information', ar: 'معلومات قانون نقل التأمين الصحي والمساءلة' },
   regulatoryUpdates: { en: 'Regulatory Updates', ar: 'التحديثات التنظيمية' },
   copyright: { 
-    en: '© 2024 PrivacyGuard AI. All rights reserved. | Powered by enterprise privacy compliance technology.',
-    ar: '© 2024 PrivacyGuard AI. جميع الحقوق محفوظة. | مدعوم بتقنية الامتثال للخصوصية المؤسسية.'
+    en: '© 2024 PrivacyComply AI. All rights reserved. | Powered by enterprise privacy compliance technology.',
+    ar: '© 2024 PrivacyComply AI. جميع الحقوق محفوظة. | مدعوم بتقنية الامتثال للخصوصية المؤسسية.'
   },
   
   // Language
