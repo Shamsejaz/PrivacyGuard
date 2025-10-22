@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import type { Request, Response } from 'express';
-import * as Joi from 'joi';
+import Joi from 'joi';
 import { asyncHandler, ValidationError } from '../middleware/errorHandler';
 import { authRateLimiter } from '../middleware/rateLimiter';
 import { authenticate } from '../middleware/auth';

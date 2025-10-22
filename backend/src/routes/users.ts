@@ -1,5 +1,5 @@
 import { Router, type Response } from 'express';
-import * as Joi from 'joi';
+import Joi from 'joi';
 import { asyncHandler, ValidationError } from '../middleware/errorHandler';
 import { authenticate, authorize } from '../middleware/auth';
 import type { AuthenticatedRequest } from '../middleware/auth';
