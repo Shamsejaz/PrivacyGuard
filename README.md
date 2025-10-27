@@ -36,6 +36,10 @@
 - [🤝 Contributing](#-contributing)
 - [📄 License](#-license)
 
+## 🚫 Fork Policy Notice
+
+**⚠️ FORKING IS DISABLED** - This is proprietary software. See [FORK-POLICY.md](FORK-POLICY.md) for details.
+
 ## 🌟 Overview
 
 PrivacyComply is a comprehensive, enterprise-grade PrivacyOps platform that leverages AI to automate privacy compliance management. Built with modern technologies and designed for scalability, it helps organizations manage GDPR, CCPA, HIPAA, and PDPL compliance requirements through intelligent automation and real-time monitoring.

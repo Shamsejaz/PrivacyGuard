@@ -25,6 +25,13 @@ export class AuthService {
   private static instance: AuthService;
   private baseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001';
 
+  constructor() {
+    console.log('AuthService initialized with baseUrl:', this.baseUrl);
+    if (this.baseUrl.includes('mock-disabled')) {
+      console.log('🎭 Mock authentication mode enabled - no backend API calls will be made');
+    }
+  }
+
   static getInstance(): AuthService {
     if (!AuthService.instance) {
       AuthService.instance = new AuthService();
@@ -34,6 +41,101 @@ export class AuthService {
 
   // Basic authentication
   async authenticate(email: string, password: string, provider?: AuthProvider): Promise<AuthenticationResult> {
+    // Mock authentication for demo purposes - check this FIRST to avoid network calls
+    const demoUsers = {
+      'admin@privacycomply.com': {
+        id: 'admin-1',
+        name: 'Admin User',
+        email: 'admin@privacycomply.com',
+        role: 'admin' as const,
+        department: 'IT',
+        lastLogin: new Date(),
+        permissions: [],
+        mfaEnabled: false,
+        authProvider: { type: 'local' as const, name: 'Local Provider', config: {} },
+        password: 'Admin123!@#'
+      },
+      'dpo@privacycomply.com': {
+        id: 'dpo-1',
+        name: 'Data Protection Officer',
+        email: 'dpo@privacycomply.com',
+        role: 'dpo' as const,
+        department: 'Legal',
+        lastLogin: new Date(),
+        permissions: [],
+        mfaEnabled: false,
+        authProvider: { type: 'local' as const, name: 'Local Provider', config: {} },
+        password: 'DPO123!@#'
+      },
+      'compliance@privacycomply.com': {
+        id: 'compliance-1',
+        name: 'Compliance Officer',
+        email: 'compliance@privacycomply.com',
+        role: 'compliance' as const,
+        department: 'Compliance',
+        lastLogin: new Date(),
+        permissions: [],
+        mfaEnabled: false,
+        authProvider: { type: 'local' as const, name: 'Local Provider', config: {} },
+        password: 'Compliance123!@#'
+      },
+      'legal@privacycomply.com': {
+        id: 'legal-1',
+        name: 'Legal Counsel',
+        email: 'legal@privacycomply.com',
+        role: 'legal' as const,
+        department: 'Legal',
+        lastLogin: new Date(),
+        permissions: [],
+        mfaEnabled: false,
+        authProvider: { type: 'local' as const, name: 'Local Provider', config: {} },
+        password: 'Legal123!@#'
+      },
+      'business@privacycomply.com': {
+        id: 'business-1',
+        name: 'Business User',
+        email: 'business@privacycomply.com',
+        role: 'business' as const,
+        department: 'Business',
+        lastLogin: new Date(),
+        permissions: [],
+        mfaEnabled: false,
+        authProvider: { type: 'local' as const, name: 'Local Provider', config: {} },
+        password: 'Business123!@#'
+      }
+    };
+
+    // Check if this is a demo user FIRST - no network calls for demo users
+    const demoUser = demoUsers[email as keyof typeof demoUsers];
+    if (demoUser && demoUser.password === password) {
+      const { password: _, ...userWithoutPassword } = demoUser;
+      const sessionId = `session-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+      
+      console.log('Demo user authenticated:', userWithoutPassword.email, 'Role:', userWithoutPassword.role);
+      
+      return {
+        success: true,
+        user: userWithoutPassword,
+        sessionId,
+        tokens: {
+          accessToken: sessionId,
+          expiresIn: 3600
+        }
+      };
+    }
+
+    // Only try backend API for non-demo users
+    // Skip backend calls if in mock mode
+    if (this.baseUrl.includes('mock-disabled')) {
+      return { success: false, error: 'Invalid credentials. Please use demo accounts: dpo@privacycomply.com, compliance@privacycomply.com, etc.' };
+    }
+
+    // Check if backend is available first
+    const isBackendAvailable = await this.checkBackendHealth();
+    if (!isBackendAvailable) {
+      return { success: false, error: 'Invalid credentials. Please use demo accounts: dpo@privacycomply.com, compliance@privacycomply.com, etc.' };
+    }
+
     try {
       const response = await fetch(`${this.baseUrl}/api/v1/auth/login`, {
         method: 'POST',
@@ -67,7 +169,25 @@ export class AuthService {
 
       return { success: false, error: 'Invalid response format' };
     } catch (error) {
-      return { success: false, error: 'Network error during authentication' };
+      return { success: false, error: 'Backend unavailable. Please use demo accounts.' };
+    }
+  }
+
+  // Check if backend is available
+  private async checkBackendHealth(): Promise<boolean> {
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 2000); // 2 second timeout
+      
+      const response = await fetch(`${this.baseUrl}/health`, {
+        method: 'GET',
+        signal: controller.signal
+      });
+      
+      clearTimeout(timeoutId);
+      return response.ok;
+    } catch (error) {
+      return false;
     }
   }
 

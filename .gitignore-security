@@ -1,0 +1,44 @@
+# Security-focused .gitignore additions
+# Add these to your existing .gitignore
+
+# Sensitive configuration files
+*.key
+*.pem
+*.p12
+*.pfx
+secrets.json
+config/production.json
+
+# AWS credentials and config
+.aws/
+aws-credentials.json
+
+# Environment files with real credentials
+.env.production.local
+.env.local.real
+
+# Database dumps and backups
+*.sql
+*.dump
+backup/
+
+# Logs that might contain sensitive data
+logs/
+*.log
+
+# IDE and editor files that might contain sensitive data
+.vscode/settings.json
+.idea/workspace.xml
+
+# Temporary files
+temp/
+tmp/
+.tmp/
+
+# OS generated files
+.DS_Store
+Thumbs.db
+
+# Docker secrets
+docker-compose.override.yml
+docker-compose.production.local.yml

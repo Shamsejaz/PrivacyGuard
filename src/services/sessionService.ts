@@ -18,6 +18,12 @@ export interface SessionWarning {
 export class SessionService {
   private static instance: SessionService;
   private baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+
+  constructor() {
+    if (this.baseUrl.includes('mock-disabled')) {
+      console.log('🎭 SessionService in mock mode - no backend API calls will be made');
+    }
+  }
   private sessionTimer: NodeJS.Timeout | null = null;
   private warningTimer: NodeJS.Timeout | null = null;
   private activityTimer: NodeJS.Timeout | null = null;
@@ -159,6 +165,14 @@ export class SessionService {
 
   // Refresh session
   async refreshSession(sessionId: string): Promise<{ success: boolean; newSessionId?: string; error?: string }> {
+    // Handle mock sessions
+    if (sessionId && sessionId.startsWith('session-')) {
+      // For mock sessions, just generate a new session ID
+      const newSessionId = `session-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+      return { success: true, newSessionId };
+    }
+
+    // Handle real backend sessions
     try {
       const response = await fetch(`${this.baseUrl}/auth/session/refresh`, {
         method: 'POST',
@@ -182,6 +196,22 @@ export class SessionService {
 
   // Validate session
   async validateSession(sessionId: string): Promise<{ valid: boolean; user?: any; error?: string }> {
+    // Check if this is a mock session (starts with 'session-')
+    if (sessionId && sessionId.startsWith('session-')) {
+      // For mock sessions, check if user data exists in localStorage
+      try {
+        const savedUser = localStorage.getItem('privacyguard_user');
+        if (savedUser) {
+          const user = JSON.parse(savedUser);
+          return { valid: true, user };
+        }
+      } catch (error) {
+        console.error('Error parsing saved user:', error);
+      }
+      return { valid: false, error: 'Mock session validation failed' };
+    }
+
+    // Try backend API for real sessions
     try {
       const response = await fetch(`${this.baseUrl}/auth/session/validate`, {
         method: 'POST',
@@ -247,6 +277,13 @@ export class SessionService {
   async logout(sessionId: string): Promise<void> {
     this.clearTimers();
     
+    // Skip backend call for mock sessions
+    if (sessionId && sessionId.startsWith('session-')) {
+      console.log('Mock session logout - no backend call needed');
+      return;
+    }
+    
+    // Only call backend for real sessions
     try {
       await fetch(`${this.baseUrl}/auth/logout`, {
         method: 'POST',

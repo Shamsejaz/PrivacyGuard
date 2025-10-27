@@ -1,145 +1,182 @@
 <!DOCTYPE html>
 <html>
+
 <head>
     <title>AWS PrivacyComply Agent Setup Diagnostics</title>
     <style>
-        body { font-family: Arial, sans-serif; margin: 20px; }
-        .status { padding: 10px; margin: 10px 0; border-radius: 5px; }
-        .success { background-color: #d4edda; color: #155724; }
-        .error { background-color: #f8d7da; color: #721c24; }
-        .warning { background-color: #fff3cd; color: #856404; }
-        .info { background-color: #d1ecf1; color: #0c5460; }
-        button { padding: 10px 20px; margin: 5px; cursor: pointer; }
-        pre { background: #f8f9fa; padding: 10px; border-radius: 5px; overflow-x: auto; }
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+        }
+
+        .status {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 5px;
+        }
+
+        .success {
+            background-color: #d4edda;
+            color: #155724;
+        }
+
+        .error {
+            background-color: #f8d7da;
+            color: #721c24;
+        }
+
+        .warning {
+            background-color: #fff3cd;
+            color: #856404;
+        }
+
+        .info {
+            background-color: #d1ecf1;
+            color: #0c5460;
+        }
+
+        button {
+            padding: 10px 20px;
+            margin: 5px;
+            cursor: pointer;
+        }
+
+        pre {
+            background: #f8f9fa;
+            padding: 10px;
+            border-radius: 5px;
+            overflow-x: auto;
+        }
     </style>
 </head>
+
 <body>
     <h1>AWS PrivacyComply Agent Setup Diagnostics</h1>
-    
+
     <div id="status">
         <p>Click "Run Diagnostics" to check the current setup status.</p>
     </div>
-    
+
     <button onclick="runDiagnostics()">Run Diagnostics</button>
     <button onclick="testConfiguration()">Test Configuration</button>
     <button onclick="clearStorage()">Clear Storage</button>
-    
+
     <div id="results"></div>
 
     <script>
         async function runDiagnostics() {
             const statusDiv = document.getElementById('status');
             const resultsDiv = document.getElementById('results');
-            
+
             statusDiv.innerHTML = '<div class="info">Running diagnostics...</div>';
             resultsDiv.innerHTML = '';
-            
+
             try {
                 // Check localStorage for saved configuration
                 const savedConfig = localStorage.getItem('privacy-comply-agent-config');
-                
+
                 if (!savedConfig) {
                     statusDiv.innerHTML = '<div class="warning">No configuration found in localStorage</div>';
                     resultsDiv.innerHTML = '<p>The setup wizard has not been completed or the configuration was not saved.</p>';
                     return;
                 }
-                
+
                 const config = JSON.parse(savedConfig);
-                
+
                 // Display configuration status
                 let html = '<h3>Configuration Status:</h3>';
-                
+
                 // Check AWS credentials
                 const hasCredentials = config.aws?.credentials?.accessKeyId && config.aws?.credentials?.secretAccessKey;
                 html += `<div class="${hasCredentials ? 'success' : 'error'}">
                     AWS Credentials: ${hasCredentials ? 'Configured' : 'Missing'}
                 </div>`;
-                
+
                 // Check S3 bucket
                 const hasS3Bucket = config.aws?.services?.s3?.reportsBucket;
                 html += `<div class="${hasS3Bucket ? 'success' : 'error'}">
                     S3 Reports Bucket: ${hasS3Bucket ? config.aws.services.s3.reportsBucket : 'Not configured'}
                 </div>`;
-                
+
                 // Check Lambda role
                 const hasLambdaRole = config.aws?.services?.lambda?.executionRole;
                 html += `<div class="${hasLambdaRole ? 'success' : 'error'}">
                     Lambda Execution Role: ${hasLambdaRole ? 'Configured' : 'Missing'}
                 </div>`;
-                
+
                 // Check region
                 const hasRegion = config.aws?.credentials?.region;
                 html += `<div class="${hasRegion ? 'success' : 'warning'}">
                     AWS Region: ${hasRegion || 'Not specified (will use default)'}
                 </div>`;
-                
+
                 // Display full configuration
                 html += '<h3>Full Configuration:</h3>';
                 html += `<pre>${JSON.stringify(config, null, 2)}</pre>`;
-                
+
                 resultsDiv.innerHTML = html;
-                
+
                 // Overall status
                 const isComplete = hasCredentials && hasS3Bucket && hasLambdaRole;
                 statusDiv.innerHTML = `<div class="${isComplete ? 'success' : 'error'}">
                     Setup Status: ${isComplete ? 'Complete' : 'Incomplete'}
                 </div>`;
-                
+
             } catch (error) {
                 statusDiv.innerHTML = '<div class="error">Error running diagnostics</div>';
                 resultsDiv.innerHTML = `<p>Error: ${error.message}</p>`;
             }
         }
-        
+
         async function testConfiguration() {
             const resultsDiv = document.getElementById('results');
-            
+
             try {
                 const savedConfig = localStorage.getItem('privacy-comply-agent-config');
                 if (!savedConfig) {
                     resultsDiv.innerHTML = '<div class="error">No configuration to test</div>';
                     return;
                 }
-                
+
                 const config = JSON.parse(savedConfig);
-                
+
                 // Simulate validation tests
                 let html = '<h3>Configuration Validation:</h3>';
-                
+
                 // Test 1: Credential format
                 const accessKeyId = config.aws?.credentials?.accessKeyId;
                 const secretAccessKey = config.aws?.credentials?.secretAccessKey;
-                
-                const credentialsValid = accessKeyId && secretAccessKey && 
-                                       accessKeyId.length >= 16 && secretAccessKey.length >= 32;
-                
+
+                const credentialsValid = accessKeyId && secretAccessKey &&
+                    accessKeyId.length >= 16 && secretAccessKey.length >= 32;
+
                 html += `<div class="${credentialsValid ? 'success' : 'error'}">
                     Credential Format: ${credentialsValid ? 'Valid' : 'Invalid format'}
                 </div>`;
-                
+
                 // Test 2: S3 bucket name format
                 const bucketName = config.aws?.services?.s3?.reportsBucket;
                 const bucketValid = bucketName && /^[a-z0-9.-]+$/.test(bucketName);
-                
+
                 html += `<div class="${bucketValid ? 'success' : 'error'}">
                     S3 Bucket Name: ${bucketValid ? 'Valid format' : 'Invalid format'}
                 </div>`;
-                
+
                 // Test 3: Lambda role ARN format
                 const roleArn = config.aws?.services?.lambda?.executionRole;
                 const roleValid = roleArn && /^arn:aws:iam::\d{12}:role\/.+$/.test(roleArn);
-                
+
                 html += `<div class="${roleValid ? 'success' : 'error'}">
                     Lambda Role ARN: ${roleValid ? 'Valid format' : 'Invalid format'}
                 </div>`;
-                
+
                 resultsDiv.innerHTML = html;
-                
+
             } catch (error) {
                 resultsDiv.innerHTML = `<div class="error">Test failed: ${error.message}</div>`;
             }
         }
-        
+
         function clearStorage() {
             localStorage.removeItem('privacy-comply-agent-config');
             document.getElementById('status').innerHTML = '<div class="info">Configuration cleared</div>';
@@ -147,4 +184,5 @@
         }
     </script>
 </body>
+
 </html>

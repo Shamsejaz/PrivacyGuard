@@ -188,6 +188,12 @@ const LoginForm: React.FC = () => {
             <p>
               <strong>Compliance:</strong> compliance@privacycomply.com / Compliance123!@#
             </p>
+            <p>
+              <strong>Legal:</strong> legal@privacycomply.com / Legal123!@#
+            </p>
+            <p>
+              <strong>Business:</strong> business@privacycomply.com / Business123!@#
+            </p>
           </div>
         </div>
       </div>
