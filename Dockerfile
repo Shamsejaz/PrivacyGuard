@@ -49,8 +49,8 @@ COPY --from=builder /app/dist /usr/share/nginx/html
 COPY nginx/ /tmp/nginx-configs/
 
 # Set up nginx configuration with fallback
-RUN if [ -f /tmp/nginx-configs/backend-auth.conf ]; then \
-        cp /tmp/nginx-configs/backend-auth.conf /etc/nginx/conf.d/default.conf; \
+RUN if [ -f /tmp/nginx-configs/frontend-only.conf ]; then \
+        cp /tmp/nginx-configs/frontend-only.conf /etc/nginx/conf.d/default.conf; \
     elif [ -f /tmp/nginx-configs/default.conf ]; then \
         cp /tmp/nginx-configs/default.conf /etc/nginx/conf.d/default.conf; \
     else \
