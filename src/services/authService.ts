@@ -130,10 +130,15 @@ export class AuthService {
       return { success: false, error: 'Invalid credentials. Please use demo accounts: dpo@privacycomply.com, compliance@privacycomply.com, etc.' };
     }
 
-    // Check if backend is available first
-    const isBackendAvailable = await this.checkBackendHealth();
-    if (!isBackendAvailable) {
-      return { success: false, error: 'Invalid credentials. Please use demo accounts: dpo@privacycomply.com, compliance@privacycomply.com, etc.' };
+    // For production backend, try direct authentication without health check
+    if (this.baseUrl.includes('privacycomply.ai')) {
+      console.log('🌐 Using live backend authentication:', this.baseUrl);
+    } else {
+      // Check if local backend is available first
+      const isBackendAvailable = await this.checkBackendHealth();
+      if (!isBackendAvailable) {
+        return { success: false, error: 'Backend unavailable. Please use demo accounts or check if the backend service is running.' };
+      }
     }
 
     try {
@@ -177,16 +182,37 @@ export class AuthService {
   private async checkBackendHealth(): Promise<boolean> {
     try {
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 2000); // 2 second timeout
+      const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 second timeout for production
       
-      const response = await fetch(`${this.baseUrl}/health`, {
-        method: 'GET',
-        signal: controller.signal
-      });
+      // Try different health check endpoints
+      const healthEndpoints = ['/health', '/api/v1/health', '/api/health'];
+      
+      for (const endpoint of healthEndpoints) {
+        try {
+          const response = await fetch(`${this.baseUrl}${endpoint}`, {
+            method: 'GET',
+            signal: controller.signal,
+            headers: {
+              'Accept': 'application/json',
+              'Content-Type': 'application/json'
+            }
+          });
+          
+          if (response.ok) {
+            clearTimeout(timeoutId);
+            console.log(`✅ Backend health check passed: ${this.baseUrl}${endpoint}`);
+            return true;
+          }
+        } catch (endpointError) {
+          // Continue to next endpoint
+          continue;
+        }
+      }
       
       clearTimeout(timeoutId);
-      return response.ok;
+      return false;
     } catch (error) {
+      console.warn('⚠️ Backend health check failed:', error);
       return false;
     }
   }
