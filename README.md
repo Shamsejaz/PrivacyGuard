@@ -164,9 +164,14 @@ chmod +x deploy-local.sh
 - PII Service: http://localhost:8000
 - Database UI: http://localhost:8080
 
-**👤 Default Login:**
-- Email: `admin@PrivacyComply.local`
-- Password: `admin123`
+**👤 Demo Credentials (Mock Authentication):**
+- **Admin**: `admin@privacycomply.com` / `Admin123!@#`
+- **DPO**: `dpo@privacycomply.com` / `DPO123!@#`
+- **Compliance**: `compliance@privacycomply.com` / `Compliance123!@#`
+- **Legal**: `legal@privacycomply.com` / `Legal123!@#`
+- **Business**: `business@privacycomply.com` / `Business123!@#`
+
+> 🎭 **Mock Mode**: The application runs in mock authentication mode by default for development, no backend API required!
 
 ### ☁️ **AWS Deployment**
 Deploy to AWS in minutes:
@@ -229,6 +234,49 @@ docker-compose -f docker-compose.local.yml --profile tools up -d
 docker-compose -f docker-compose.local.yml exec postgres psql -U PrivacyComply_user
 docker-compose -f docker-compose.local.yml exec mongodb mongosh PrivacyComply_local
 docker-compose -f docker-compose.local.yml exec redis redis-cli
+```
+
+## 🎭 Mock Authentication Mode
+
+For development and testing, PrivacyComply includes a built-in mock authentication system that works without any backend API.
+
+### 🚀 **Quick Setup**
+
+1. **Start the frontend only:**
+   ```bash
+   npm install
+   npm run dev
+   ```
+
+2. **Use demo credentials:**
+   - **DPO User**: `dpo@privacycomply.com` / `DPO123!@#`
+   - **Compliance User**: `compliance@privacycomply.com` / `Compliance123!@#`
+   - **Admin User**: `admin@privacycomply.com` / `Admin123!@#`
+
+3. **Access compliance frameworks:**
+   - Log in with DPO or Compliance credentials
+   - Navigate to "Compliance Frameworks" in the sidebar
+   - Access GDPR, PDPL, HIPAA, and CCPA compliance tools
+
+### ⚙️ **Configuration**
+
+Mock authentication is enabled by default through `.env.development`:
+
+```bash
+# Disable backend API calls
+VITE_API_BASE_URL=http://mock-disabled:9999
+VITE_API_URL=http://mock-disabled:9999
+VITE_WS_URL=ws://mock-disabled:9999
+```
+
+### 🔧 **Switching to Real Backend**
+
+To use a real backend API, update your `.env.local`:
+
+```bash
+VITE_API_BASE_URL=http://localhost:3001
+VITE_API_URL=http://localhost:3001
+VITE_WS_URL=ws://localhost:3001
 ```
 
 ## ☁️ AWS Deployment
