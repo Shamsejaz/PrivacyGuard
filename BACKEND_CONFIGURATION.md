@@ -181,9 +181,12 @@ Deploy frontend with live backend connection:
 docker-compose -f docker-compose.production.yml up --build
 ```
 
-### Docker Backend Authentication Build
+### Docker Backend Authentication Build (Default)
 ```bash
-# Build frontend-only with backend authentication
+# Default: Build frontend with backend authentication
+docker-compose up --build
+
+# Alternative: Use specific backend auth file
 docker-compose -f docker-compose.backend-auth.yml up --build
 ```
 

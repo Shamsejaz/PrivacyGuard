@@ -150,17 +150,16 @@ Get up and running in 5 minutes:
 git clone https://github.com/PrivacyComply/PrivacyComply.git
 cd PrivacyComply
 
-# Option 1: Full local stack
+# Default: Frontend with live backend (app.privacycomply.ai)
+docker-compose up --build
+
+# Alternative: Full local development stack
 docker-compose -f docker-compose.local.yml up --build
 
-# Option 2: Frontend with live backend (app.privacycomply.ai)
+# Alternative: Use deployment scripts
 ./deploy-backend-auth.sh  # Linux/Mac
 # or
 .\deploy-backend-auth.ps1  # Windows
-
-# Option 3: Use deployment script
-chmod +x deploy-local.sh
-./deploy-local.sh
 ```
 
 **🌐 Access URLs:**
@@ -210,6 +209,14 @@ docker-compose -f docker-compose.local.yml up --build
 
 **Available Docker Modes:**
 
+#### 🌐 **Backend Authentication** (`docker-compose.yml` - **Default**)
+- ✅ Frontend connected to live backend
+- ✅ Production-ready nginx configuration
+- ✅ SSL/TLS support
+- ✅ Rate limiting and security headers
+- 🔗 Backend: `https://app.privacycomply.ai/api/v1`
+- 🚀 **Command**: `docker-compose up --build`
+
 #### 🏠 **Local Development** (`docker-compose.local.yml`)
 - ✅ Frontend (React + Vite) with hot reload
 - ✅ Backend (Node.js + Express) with nodemon
@@ -218,19 +225,14 @@ docker-compose -f docker-compose.local.yml up --build
 - ✅ MongoDB + Mongo Express UI
 - ✅ Redis + Redis Commander UI
 - ✅ Mailhog (Email testing)
-
-#### 🌐 **Backend Authentication** (`docker-compose.backend-auth.yml`)
-- ✅ Frontend connected to live backend
-- ✅ Production-ready nginx configuration
-- ✅ SSL/TLS support
-- ✅ Rate limiting and security headers
-- 🔗 Backend: `https://app.privacycomply.ai/api/v1`
+- 🚀 **Command**: `docker-compose -f docker-compose.local.yml up --build`
 
 #### 🏭 **Full Production** (`docker-compose.production.yml`)
 - ✅ Complete production stack
 - ✅ All services with production optimizations
 - ✅ Health checks and monitoring
 - ✅ Resource limits and scaling
+- 🚀 **Command**: `docker-compose -f docker-compose.production.yml up --build`
 
 ### 🏭 **Production Deployment**
 Production-ready containers with optimizations:

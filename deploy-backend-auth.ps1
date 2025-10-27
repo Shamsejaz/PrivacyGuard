@@ -109,7 +109,8 @@ VITE_DEPLOYMENT_TIME=$(Get-Date -Format "yyyy-MM-ddTHH:mm:ssZ")
 function Start-Deployment {
     Write-ColorOutput $Cyan "🚀 Starting deployment..."
     
-    $composeFile = "docker-compose.backend-auth.yml"
+    # Use default docker-compose.yml (now backend auth) or specific backend auth file
+    $composeFile = "docker-compose.yml"
     
     if ($Build -or -not $NoBuild) {
         Write-ColorOutput $Cyan "🔨 Building containers..."
@@ -135,7 +136,7 @@ function Show-Status {
     Write-ColorOutput $Cyan "📊 Deployment Status"
     Write-ColorOutput $White "===================="
     
-    docker-compose -f docker-compose.backend-auth.yml ps
+    docker-compose ps
     
     Write-ColorOutput $Cyan "`n🌐 Access URLs:"
     Write-ColorOutput $White "Frontend: http://localhost"
@@ -154,18 +155,18 @@ function Show-Status {
 
 function Show-Logs {
     Write-ColorOutput $Cyan "📋 Showing logs..."
-    docker-compose -f docker-compose.backend-auth.yml logs -f
+    docker-compose logs -f
 }
 
 function Stop-Services {
     Write-ColorOutput $Cyan "🛑 Stopping services..."
-    docker-compose -f docker-compose.backend-auth.yml down
+    docker-compose down
     Write-ColorOutput $Green "✅ Services stopped"
 }
 
 function Clean-Deployment {
     Write-ColorOutput $Cyan "🧹 Cleaning up..."
-    docker-compose -f docker-compose.backend-auth.yml down -v --remove-orphans
+    docker-compose down -v --remove-orphans
     docker system prune -f
     Write-ColorOutput $Green "✅ Cleanup completed"
 }

@@ -1,73 +1,80 @@
-# Simple Deployment Script for PrivacyGuard
-# Uses environment variables from .env file for configuration
+# Simple PowerShell deployment script for PrivacyComply
+# Uses the default docker-compose.yml (backend authentication mode)
 
 param(
-    [string]$Environment = "development",
-    [switch]$Build = $false,
-    [switch]$Down = $false
+    [switch]$Build,
+    [switch]$NoBuild,
+    [switch]$Logs,
+    [switch]$Stop,
+    [switch]$Clean,
+    [switch]$Status
 )
 
-$EnvFile = if ($Environment -eq "production") { ".env.production" } else { ".env" }
+# Colors for output
+$Green = [System.ConsoleColor]::Green
+$Cyan = [System.ConsoleColor]::Cyan
+$Yellow = [System.ConsoleColor]::Yellow
+$White = [System.ConsoleColor]::White
 
-Write-Host "🚀 PrivacyGuard Deployment" -ForegroundColor Blue
-Write-Host "Environment: $Environment" -ForegroundColor Cyan
-Write-Host "Config file: $EnvFile" -ForegroundColor Cyan
-
-# Check if environment file exists
-if (-not (Test-Path $EnvFile)) {
-    Write-Host "[ERROR] Environment file $EnvFile not found!" -ForegroundColor Red
-    if ($Environment -eq "production") {
-        Write-Host "Please copy .env.production.example to .env.production and configure it" -ForegroundColor Yellow
-    } else {
-        Write-Host "Please ensure .env file exists for local development" -ForegroundColor Yellow
-    }
-    exit 1
+function Write-ColorOutput($ForegroundColor, $Message) {
+    $originalColor = [Console]::ForegroundColor
+    [Console]::ForegroundColor = $ForegroundColor
+    Write-Output $Message
+    [Console]::ForegroundColor = $originalColor
 }
 
-# Stop containers if requested
-if ($Down) {
-    Write-Host "🛑 Stopping containers..." -ForegroundColor Yellow
-    docker-compose --env-file $EnvFile down
+Write-ColorOutput $Cyan @"
+🚀 PrivacyComply Deployment
+==========================
+Mode: Backend Authentication (Default)
+Backend: https://app.privacycomply.ai/api/v1
+"@
+
+if ($Stop) {
+    Write-ColorOutput $Cyan "🛑 Stopping services..."
+    docker-compose down
+    Write-ColorOutput $Green "✅ Services stopped"
     exit 0
 }
 
-# Build flag
-$BuildFlag = if ($Build) { "--build" } else { "" }
-
-# Deploy
-Write-Host "🚀 Starting deployment..." -ForegroundColor Green
-if ($Build) {
-    Write-Host "📦 Building images..." -ForegroundColor Blue
+if ($Clean) {
+    Write-ColorOutput $Cyan "🧹 Cleaning up..."
+    docker-compose down -v --remove-orphans
+    docker system prune -f
+    Write-ColorOutput $Green "✅ Cleanup completed"
+    exit 0
 }
 
-try {
-    docker-compose --env-file $EnvFile up -d $BuildFlag
-    Write-Host "✅ Deployment completed successfully!" -ForegroundColor Green
-    
-    # Show status
-    Write-Host "`n📊 Container Status:" -ForegroundColor Cyan
-    docker-compose --env-file $EnvFile ps
-    
-    # Load environment to show URLs
-    $envVars = @{}
-    Get-Content $EnvFile | Where-Object { $_ -match "=" -and $_ -notmatch "^#" } | ForEach-Object {
-        $key, $value = $_ -split "=", 2
-        $envVars[$key] = $value
-    }
-    
-    $frontendUrl = if ($envVars.ContainsKey("FRONTEND_URL")) { $envVars["FRONTEND_URL"] } else { "http://localhost:80" }
-    $apiUrl = if ($envVars.ContainsKey("API_URL")) { $envVars["API_URL"] } else { "http://localhost:3001" }
-    
-    Write-Host "`n🌐 Access URLs:" -ForegroundColor Cyan
-    Write-Host "   Frontend: $frontendUrl" -ForegroundColor White
-    Write-Host "   API: $apiUrl" -ForegroundColor White
-    
-    Write-Host "`n🔧 Management Commands:" -ForegroundColor Cyan
-    Write-Host "   View logs: docker-compose --env-file $EnvFile logs -f" -ForegroundColor White
-    Write-Host "   Stop: .\deploy.ps1 -Environment $Environment -Down" -ForegroundColor White
-    Write-Host "   Rebuild: .\deploy.ps1 -Environment $Environment -Build" -ForegroundColor White
-    
-} catch {
-    Write-Host "❌ Deployment failed: $_" -ForegroundColor Red
+if ($Logs) {
+    Write-ColorOutput $Cyan "📋 Showing logs..."
+    docker-compose logs -f
+    exit 0
+}
+
+if ($Status) {
+    Write-ColorOutput $Cyan "📊 Service Status"
+    docker-compose ps
+    exit 0
+}
+
+# Default deployment
+if ($Build -or -not $NoBuild) {
+    Write-ColorOutput $Cyan "🔨 Building and starting services..."
+    docker-compose up --build -d
+} else {
+    Write-ColorOutput $Cyan "🚀 Starting services..."
+    docker-compose up -d
+}
+
+if ($LASTEXITCODE -eq 0) {
+    Write-ColorOutput $Green "✅ Deployment successful!"
+    Write-ColorOutput $White ""
+    Write-ColorOutput $Cyan "🌐 Access URLs:"
+    Write-ColorOutput $White "Frontend: http://localhost"
+    Write-ColorOutput $White "Backend: https://app.privacycomply.ai/api/v1"
+    Write-ColorOutput $White ""
+    Write-ColorOutput $Yellow "🔑 Use real backend credentials (demo credentials won't work)"
+} else {
+    Write-ColorOutput $Red "❌ Deployment failed"
     exit 1
 }

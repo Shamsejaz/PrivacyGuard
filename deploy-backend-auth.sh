@@ -25,18 +25,18 @@ while [[ $# -gt 0 ]]; do
             shift
             ;;
         --logs)
-            docker-compose -f docker-compose.backend-auth.yml logs -f
+            docker-compose logs -f
             exit 0
             ;;
         --stop)
             echo -e "${CYAN}🛑 Stopping services...${NC}"
-            docker-compose -f docker-compose.backend-auth.yml down
+            docker-compose down
             echo -e "${GREEN}✅ Services stopped${NC}"
             exit 0
             ;;
         --clean)
             echo -e "${CYAN}🧹 Cleaning up...${NC}"
-            docker-compose -f docker-compose.backend-auth.yml down -v --remove-orphans
+            docker-compose down -v --remove-orphans
             docker system prune -f
             echo -e "${GREEN}✅ Cleanup completed${NC}"
             exit 0
@@ -130,7 +130,8 @@ EOF
 function start_deployment() {
     echo -e "${CYAN}🚀 Starting deployment...${NC}"
     
-    COMPOSE_FILE="docker-compose.backend-auth.yml"
+    # Use default docker-compose.yml (now backend auth) or specific backend auth file
+    COMPOSE_FILE="docker-compose.yml"
     
     if [ "$BUILD" = true ]; then
         echo -e "${CYAN}🔨 Building containers...${NC}"
@@ -147,7 +148,7 @@ function show_status() {
     echo -e "${CYAN}📊 Deployment Status${NC}"
     echo -e "${WHITE}====================${NC}"
     
-    docker-compose -f docker-compose.backend-auth.yml ps
+    docker-compose ps
     
     echo -e "\n${CYAN}🌐 Access URLs:${NC}"
     echo -e "${WHITE}Frontend: http://localhost${NC}"
