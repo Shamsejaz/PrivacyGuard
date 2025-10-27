@@ -45,9 +45,18 @@ RUN apk add --no-cache curl
 # Copy built files to nginx
 COPY --from=builder /app/dist /usr/share/nginx/html
 
-# Copy nginx configuration (use backend-auth.conf if available, fallback to default)
-COPY nginx/backend-auth.conf /etc/nginx/conf.d/default.conf 2>/dev/null || \
-     echo "server { listen 80; root /usr/share/nginx/html; index index.html; location / { try_files \$uri \$uri/ /index.html; } }" > /etc/nginx/conf.d/default.conf
+# Copy nginx configurations
+COPY nginx/ /tmp/nginx-configs/
+
+# Set up nginx configuration with fallback
+RUN if [ -f /tmp/nginx-configs/backend-auth.conf ]; then \
+        cp /tmp/nginx-configs/backend-auth.conf /etc/nginx/conf.d/default.conf; \
+    elif [ -f /tmp/nginx-configs/default.conf ]; then \
+        cp /tmp/nginx-configs/default.conf /etc/nginx/conf.d/default.conf; \
+    else \
+        echo 'server { listen 80; root /usr/share/nginx/html; index index.html; location / { try_files $uri $uri/ /index.html; } location /health { return 200 "healthy"; add_header Content-Type text/plain; } }' > /etc/nginx/conf.d/default.conf; \
+    fi && \
+    rm -rf /tmp/nginx-configs
 
 # Create nginx directories
 RUN mkdir -p /var/cache/nginx/client_temp && \
