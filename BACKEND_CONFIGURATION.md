@@ -136,10 +136,55 @@ npm run dev
 
 ## 🌐 Production Deployment
 
-### Docker Production Build
+### Docker Backend Authentication Mode
+Deploy frontend with live backend connection:
+
+#### Windows (PowerShell)
+```powershell
+# Deploy with backend authentication
+.\deploy-backend-auth.ps1
+
+# Deploy without rebuilding
+.\deploy-backend-auth.ps1 -NoBuild
+
+# View logs
+.\deploy-backend-auth.ps1 -Logs
+
+# Stop services
+.\deploy-backend-auth.ps1 -Stop
+
+# Clean up
+.\deploy-backend-auth.ps1 -Clean
+```
+
+#### Linux/Mac (Bash)
+```bash
+# Deploy with backend authentication
+./deploy-backend-auth.sh
+
+# Deploy without rebuilding
+./deploy-backend-auth.sh --no-build
+
+# View logs
+./deploy-backend-auth.sh --logs
+
+# Stop services
+./deploy-backend-auth.sh --stop
+
+# Clean up
+./deploy-backend-auth.sh --clean
+```
+
+### Docker Production Build (Full Stack)
 ```bash
 # Build with production environment
 docker-compose -f docker-compose.production.yml up --build
+```
+
+### Docker Backend Authentication Build
+```bash
+# Build frontend-only with backend authentication
+docker-compose -f docker-compose.backend-auth.yml up --build
 ```
 
 ### Environment Variables for Production
@@ -148,6 +193,7 @@ Ensure these are set in your production environment:
 VITE_API_BASE_URL=https://app.privacycomply.ai/api/v1
 VITE_API_URL=https://app.privacycomply.ai/api/v1
 VITE_WS_URL=wss://app.privacycomply.ai
+VITE_DEPLOYMENT_MODE=backend-auth
 ```
 
 ## 📊 Monitoring Backend Connection

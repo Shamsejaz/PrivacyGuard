@@ -150,10 +150,15 @@ Get up and running in 5 minutes:
 git clone https://github.com/PrivacyComply/PrivacyComply.git
 cd PrivacyComply
 
-# Start with Docker Compose
+# Option 1: Full local stack
 docker-compose -f docker-compose.local.yml up --build
 
-# Or use the deployment script
+# Option 2: Frontend with live backend (app.privacycomply.ai)
+./deploy-backend-auth.sh  # Linux/Mac
+# or
+.\deploy-backend-auth.ps1  # Windows
+
+# Option 3: Use deployment script
 chmod +x deploy-local.sh
 ./deploy-local.sh
 ```
@@ -203,7 +208,9 @@ Complete development environment with hot reloading:
 docker-compose -f docker-compose.local.yml up --build
 ```
 
-**Includes:**
+**Available Docker Modes:**
+
+#### 🏠 **Local Development** (`docker-compose.local.yml`)
 - ✅ Frontend (React + Vite) with hot reload
 - ✅ Backend (Node.js + Express) with nodemon
 - ✅ Python PII Service (FastAPI)
@@ -211,6 +218,19 @@ docker-compose -f docker-compose.local.yml up --build
 - ✅ MongoDB + Mongo Express UI
 - ✅ Redis + Redis Commander UI
 - ✅ Mailhog (Email testing)
+
+#### 🌐 **Backend Authentication** (`docker-compose.backend-auth.yml`)
+- ✅ Frontend connected to live backend
+- ✅ Production-ready nginx configuration
+- ✅ SSL/TLS support
+- ✅ Rate limiting and security headers
+- 🔗 Backend: `https://app.privacycomply.ai/api/v1`
+
+#### 🏭 **Full Production** (`docker-compose.production.yml`)
+- ✅ Complete production stack
+- ✅ All services with production optimizations
+- ✅ Health checks and monitoring
+- ✅ Resource limits and scaling
 
 ### 🏭 **Production Deployment**
 Production-ready containers with optimizations:
